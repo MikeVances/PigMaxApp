@@ -1,0 +1,60 @@
+:root {
+  --bg: #0b0c10;
+  --card: #15161a;
+  --text: #e6e7eb;
+  --muted: #9aa0a6;
+  --accent: #6aa0ff;
+  --accent-2: #74d69b;
+  --border: #26272c;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+.container { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+h1 { margin: 0 0 16px; font-size: 22px; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+label { display: block; margin: 10px 0; }
+label.inline { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; }
+input[type="number"], input[type="text"] { width: 100%; padding: 8px 10px; background: #0e1013; color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
+select { width: 100%; padding: 8px 10px; background: #0e1013; color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
+.btn { background: var(--accent); color: #05122b; border: 0; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.btn-secondary { background: #2a2c33; color: var(--text); border: 1px solid var(--border); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.btn:not(:disabled):hover { filter: brightness(1.12); }
+/* overflow-x:auto + nowrap — вкладки скроллятся горизонтально, а не переносятся.
+   Без этого при большом числе домов вкладки занимают весь экран. */
+.tabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+/* flex-shrink:0 — таб не сжимается при nowrap, сохраняет читаемость текста */
+.tab { flex-shrink: 0; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; background: #101217; color: var(--text); }
+.tab.active { background: #111827; border-color: #2b2e35; color: var(--accent-2); }
+.muted { color: var(--muted); }
+.result { display: grid; gap: 8px; }
+.kv { display: flex; justify-content: space-between; border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; background: #0e1013; }
+.big { font-size: 22px; font-weight: 700; }
+.ok { color: var(--accent-2); }
+.warn { color: #ffcf6b; }
+.danger { color: #ff7a7a; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+/* input внутри td создаёт свой formatting context — наследование text-align не работает */
+td input[type="number"], td input[type="text"] { text-align: right; }
+footer { margin-top: 18px; color: var(--muted); }
+code { background: #0e1013; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); }
+
+/* Предотвращаем авто-зум iOS Safari при фокусе на инпуте (триггер < 16px) */
+input[type="number"], input[type="text"], select, textarea { font-size: 16px; }
+
+/* Убираем 300мс задержку двойного тапа на iOS на интерактивных элементах */
+.btn, .tab, button { touch-action: manipulation; }
+
+@media (max-width: 860px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 1000; }
+.modal.hidden { display: none; }
+.modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: min(420px, 90vw); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }

@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PigMax — Pig House Ventilation</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/i18n/en.js"></script>
+  <script src="/i18n/ru.js"></script>
+  <script src="/i18n/pl.js"></script>
+  <script src="/i18n/de.js"></script>
+  <script src="/i18n/fr.js"></script>
+  <script src="/i18n.js"></script>
+</head>
+<body data-page-title="page_title">
+  <main class="container">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <h1 style="margin:0;" data-i18n="app_title">🐷 PigMax</h1>
+      <span class="badge" data-i18n="source_label">PIC 2019</span>
+    </div>
+
+    <!-- ── 1. Ventilation inputs ────────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_inputs">House Parameters</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_num_pigs">Number of pigs</span>
+          <input id="numPigs" type="number" min="1" max="10000" step="50" value="1000"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_avg_weight">Avg live weight, kg</span>
+          <input id="avgWeight" type="number" min="5" max="200" step="1" value="50"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_t_outside">Outside temp, °C</span>
+          <input id="tOutside" type="number" min="-30" max="45" step="1" value="-5"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_season">Season</span>
+          <select id="season" style="width:100%;margin-top:4px;">
+            <option value="winter" data-i18n="season_winter">Winter</option>
+            <option value="summer" data-i18n="season_summer">Summer</option>
+          </select>
+        </label>
+
+      </div>
+      <button id="calcBtn" class="btn" style="margin-top:14px;width:100%;" data-i18n="btn_calculate">
+        Calculate
+      </button>
+    </div>
+
+    <!-- ── 2. Ventilation results ───────────────────────────────────────────── -->
+    <div id="results" style="display:none;">
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
+        <div class="card" style="text-align:center;">
+          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_setpoint">Temperature setpoint</div>
+          <div id="resSetpoint" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
+          <div class="muted" style="font-size:11px;">°C</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_vent_min">Min ventilation</div>
+          <div id="resVentMin" style="font-size:24px;font-weight:700;">—</div>
+          <div class="muted" style="font-size:11px;" data-i18n="unit_m3h">m³/h</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_pig_heat">Pig heat output</div>
+          <div id="resPigHeat" style="font-size:24px;font-weight:700;">—</div>
+          <div class="muted" style="font-size:11px;">kW</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_vent_per_head">Per head</div>
+          <div id="resVentPerHead" style="font-size:24px;font-weight:700;">—</div>
+          <div class="muted" style="font-size:11px;" data-i18n="unit_m3h_head">m³/head/h</div>
+        </div>
+      </div>
+
+      <!-- Day / target badge -->
+      <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div>
+          <span class="muted" style="font-size:12px;" data-i18n="res_day_weaning">Day post-weaning: </span>
+          <strong id="resDayWeaning">—</strong>
+        </div>
+        <div>
+          <span class="muted" style="font-size:12px;" data-i18n="res_target_temp">Target temp: </span>
+          <strong id="resTargetTemp">—</strong> °C
+        </div>
+        <div id="coolingAlert" style="display:none;color:#ff7a7a;font-weight:600;" data-i18n="alert_cooling_needed">
+          ⚠ Cooling needed!
+        </div>
+      </div>
+
+      <!-- ── Heat balance ───────────────────────────────────────────────────── -->
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_heat_balance">Heat Balance</h2>
+        <div id="hbNoUa" class="muted" style="font-size:12px;display:none;" data-i18n="hb_no_ua">
+          Save building settings to see wall/roof heat losses.
+        </div>
+        <table id="hbTable" style="width:100%;border-collapse:collapse;font-size:13px;display:none;">
+          <tr>
+            <td class="muted" data-i18n="hb_q_pigs">Pig heat production</td>
+            <td style="text-align:right;"><strong id="hbQPigs">—</strong> kW</td>
+          </tr>
+          <tr>
+            <td class="muted" data-i18n="hb_q_ventilation">Ventilation heat loss</td>
+            <td style="text-align:right;"><strong id="hbQVent">—</strong> kW</td>
+          </tr>
+          <tr>
+            <td class="muted" data-i18n="hb_q_walls">Wall / roof loss</td>
+            <td style="text-align:right;"><strong id="hbQWalls">—</strong> kW</td>
+          </tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td class="muted" data-i18n="hb_q_heater">Heating required</td>
+            <td style="text-align:right;"><strong id="hbQHeater">—</strong> kW</td>
+          </tr>
+          <tr id="hbDutyRow" style="display:none;">
+            <td class="muted" data-i18n="hb_duty_cycle">Heater duty cycle</td>
+            <td style="text-align:right;"><strong id="hbDuty">—</strong></td>
+          </tr>
+        </table>
+        <div id="hbSelfHeated" style="display:none;color:#4caf50;font-size:13px;margin-top:8px;"
+             data-i18n="hb_self_heated">
+          ✓ No heating needed — pigs self-heat the house.
+        </div>
+      </div>
+
+      <!-- Gas limits -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="muted" style="font-size:12px;margin-bottom:8px;" data-i18n="gas_limits_title">Gas concentration limits (PIC 2019)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:13px;">
+          <div><span class="muted">NH₃</span> &lt; <strong>20 mg/m³</strong></div>
+          <div><span class="muted">CO₂</span> &lt; <strong>3 000 mg/m³</strong></div>
+          <div><span class="muted">CO</span>  &lt; <strong>30 mg/m³</strong></div>
+          <div><span class="muted">H₂S</span> &lt; <strong>5 mg/m³</strong></div>
+        </div>
+      </div>
+
+      <!-- Humidity reminder -->
+      <div class="card" style="margin-bottom:16px;border-left:3px solid var(--accent);">
+        <span class="muted" style="font-size:12px;" data-i18n="rh_reminder">Relative humidity must not exceed </span>
+        <strong>65%</strong>
+        <span class="muted" style="font-size:12px;" data-i18n="rh_reminder2"> — increase ventilation if exceeded and T_outside &lt; setpoint</span>
+      </div>
+
+    </div>
+
+    <!-- ── 3. Building settings ─────────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_building">Building Settings</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_length">Length, m</span>
+          <input id="bldLength" type="number" min="10" max="500" step="1" value="100"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_width">Width, m</span>
+          <input id="bldWidth" type="number" min="5" max="50" step="1" value="20"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_height">Height, m</span>
+          <input id="bldHeight" type="number" min="1" max="10" step="0.1" value="2.4"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_heater_power">Heater power, kW</span>
+          <input id="heaterPower" type="number" min="0" max="2000" step="10" value="200"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_heater_type">Heater type</span>
+          <select id="heaterType" style="width:100%;margin-top:4px;">
+            <option value="gas"      data-i18n="heater_gas">Gas</option>
+            <option value="electric" data-i18n="heater_electric">Electric</option>
+          </select>
+        </label>
+
+      </div>
+
+      <!-- Calculated volume / floor area display -->
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--muted,#888);">
+        <span data-i18n="label_volume">Volume:</span>
+        <strong id="calcVolume">—</strong> m³ &nbsp;·&nbsp;
+        <span data-i18n="label_floor_area_calc">Floor:</span>
+        <strong id="calcFloor">—</strong> m²
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+        <button id="saveSettingsBtn" class="btn btn-secondary" data-i18n="btn_save_settings">Save settings</button>
+        <span id="settingsSavedMsg" style="display:none;color:#4caf50;font-size:12px;" data-i18n="settings_saved">✓ Saved!</span>
+      </div>
+    </div>
+
+    <!-- ── 4. Stocking density ──────────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:16px;">
+      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_stocking">Stocking Density Check</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_floor_area">Usable floor area, m²</span>
+          <input id="floorArea" type="number" min="10" max="5000" step="10" value="800"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_floor_type">Floor type</span>
+          <select id="floorType" style="width:100%;margin-top:4px;">
+            <option value="slatted" data-i18n="floor_slatted">Slatted</option>
+            <option value="solid"   data-i18n="floor_solid">Solid</option>
+          </select>
+        </label>
+      </div>
+      <button id="stockingBtn" class="btn btn-secondary" style="margin-top:14px;" data-i18n="btn_check_stocking">
+        Check stocking density
+      </button>
+
+      <div id="stockingResult" style="margin-top:12px;display:none;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tr><td class="muted" data-i18n="stk_recommended">Recommended m²/head</td>
+              <td style="text-align:right;" id="stkRecommended">—</td></tr>
+          <tr><td class="muted" data-i18n="stk_actual">Actual m²/head</td>
+              <td style="text-align:right;" id="stkActual">—</td></tr>
+          <tr><td class="muted" data-i18n="stk_max_pigs">Max pigs (PIC norm)</td>
+              <td style="text-align:right;" id="stkMax">—</td></tr>
+          <tr><td class="muted" data-i18n="stk_utilization">Utilization</td>
+              <td style="text-align:right;" id="stkUtil">—</td></tr>
+          <tr><td colspan="2" id="stkStatus" style="padding-top:8px;font-weight:600;"></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;color:var(--muted,#888);font-size:11px;padding:12px 0;">
+      PigMax · PIC 2019 · Brown-Brandl et al. 2004 · <span id="buildVersion">local</span>
+    </div>
+
+  </main>
+
+  <script>
+  (function () {
+
+    // ── Settings: load & save ────────────────────────────────────────────────
+    let currentSettings = null;
+
+    function updateVolumeDisplay() {
+      const l = parseFloat(document.getElementById('bldLength').value) || 0;
+      const w = parseFloat(document.getElementById('bldWidth').value)  || 0;
+      const h = parseFloat(document.getElementById('bldHeight').value) || 0;
+      document.getElementById('calcVolume').textContent = Math.round(l * w * h);
+      document.getElementById('calcFloor').textContent  = Math.round(l * w);
+    }
+
+    async function loadSettings() {
+      try {
+        const r = await fetch('/settings');
+        if (!r.ok) return;
+        const s = await r.json();
+        currentSettings = s;
+        document.getElementById('bldLength').value    = s.building.length_m;
+        document.getElementById('bldWidth').value     = s.building.width_m;
+        document.getElementById('bldHeight').value    = s.building.height_m;
+        document.getElementById('heaterPower').value  = s.heater.total_power_kw;
+        document.getElementById('heaterType').value   = s.heater.heater_type;
+        updateVolumeDisplay();
+        // Sync floor area from building if stocking field not yet touched
+        document.getElementById('floorArea').value = s.building.floor_area_m2;
+      } catch (_) {}
+    }
+
+    ['bldLength','bldWidth','bldHeight'].forEach(id =>
+      document.getElementById(id).addEventListener('input', updateVolumeDisplay)
+    );
+
+    document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+      const payload = {
+        building: {
+          length_m: parseFloat(document.getElementById('bldLength').value),
+          width_m:  parseFloat(document.getElementById('bldWidth').value),
+          height_m: parseFloat(document.getElementById('bldHeight').value),
+        },
+        heater: {
+          total_power_kw: parseFloat(document.getElementById('heaterPower').value),
+          heater_type:    document.getElementById('heaterType').value,
+        }
+      };
+      const r = await fetch('/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        currentSettings = await r.json();
+        document.getElementById('floorArea').value = currentSettings.building.floor_area_m2;
+        const msg = document.getElementById('settingsSavedMsg');
+        msg.style.display = '';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+      }
+    });
+
+    // ── Ventilation + Heat balance ───────────────────────────────────────────
+    document.getElementById('calcBtn').addEventListener('click', async () => {
+      const numPigs  = parseInt(document.getElementById('numPigs').value);
+      const weight   = parseFloat(document.getElementById('avgWeight').value);
+      const tOutside = parseFloat(document.getElementById('tOutside').value);
+      const season   = document.getElementById('season').value;
+      if (!numPigs || !weight || isNaN(tOutside)) return;
+
+      // Ventilation
+      const rv = await fetch('/calc/ventilation', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, t_outside_c: tOutside, season }),
+      });
+      if (!rv.ok) return;
+      const d = await rv.json();
+
+      document.getElementById('resSetpoint').textContent    = d.setpoint_c;
+      document.getElementById('resVentMin').textContent     = d.min_vent_total_m3h.toLocaleString();
+      document.getElementById('resPigHeat').textContent     = d.pig_heat_total_kw;
+      document.getElementById('resVentPerHead').textContent = d.min_vent_per_head_m3h;
+      document.getElementById('resDayWeaning').textContent  = d.day_post_weaning;
+      document.getElementById('resTargetTemp').textContent  = d.target_temp_c;
+      document.getElementById('coolingAlert').style.display = d.cooling_needed ? '' : 'none';
+      document.getElementById('results').style.display      = '';
+
+      // Heat balance
+      const s = currentSettings;
+      const hbPayload = {
+        weight_kg:          weight,
+        num_pigs:           numPigs,
+        t_outside_c:        tOutside,
+        q_min_m3h:          d.min_vent_total_m3h,
+        ua_coefficient:     s?.ua_coefficient ?? null,
+        building_volume_m3: s ? s.building.volume_m3 : null,
+        total_heater_kw:    s ? s.heater.total_power_kw : null,
+      };
+      const rh = await fetch('/calc/heat-balance', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(hbPayload),
+      });
+      if (!rh.ok) return;
+      const hb = await rh.json();
+
+      document.getElementById('hbQPigs').textContent  = hb.q_pigs_kw;
+      document.getElementById('hbQVent').textContent  = hb.q_ventilation_kw;
+      document.getElementById('hbQWalls').textContent = hb.q_walls_kw;
+      document.getElementById('hbQHeater').textContent= hb.q_heater_required_kw;
+
+      const hasUa = s?.ua_coefficient != null;
+      document.getElementById('hbNoUa').style.display   = hasUa ? 'none' : '';
+      document.getElementById('hbTable').style.display  = 'table';
+
+      const selfHeated = hb.q_heater_required_kw === 0;
+      document.getElementById('hbSelfHeated').style.display = selfHeated ? '' : 'none';
+
+      const dutyRow = document.getElementById('hbDutyRow');
+      if (hb.duty_cycle != null) {
+        document.getElementById('hbDuty').textContent = Math.round(hb.duty_cycle * 100) + '%';
+        dutyRow.style.display = '';
+      } else {
+        dutyRow.style.display = 'none';
+      }
+    });
+
+    // ── Stocking density ─────────────────────────────────────────────────────
+    document.getElementById('stockingBtn').addEventListener('click', async () => {
+      const weight    = parseFloat(document.getElementById('avgWeight').value);
+      const numPigs   = parseInt(document.getElementById('numPigs').value);
+      const floorArea = parseFloat(document.getElementById('floorArea').value);
+      const floorType = document.getElementById('floorType').value;
+      if (!weight || !numPigs || !floorArea) return;
+
+      const r = await fetch('/calc/stocking', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, floor_area_m2: floorArea, floor_type: floorType }),
+      });
+      if (!r.ok) return;
+      const d = await r.json();
+
+      document.getElementById('stkRecommended').textContent = d.recommended_m2_per_head + ' m²';
+      document.getElementById('stkActual').textContent      = d.actual_m2_per_head + ' m²';
+      document.getElementById('stkMax').textContent         = d.max_pigs_recommended;
+      document.getElementById('stkUtil').textContent        = (d.utilization_pct ?? '—') + '%';
+
+      const statusEl = document.getElementById('stkStatus');
+      statusEl.textContent = d.overstocked
+        ? '⚠ ' + (window.t ? window.t('stk_overstocked') : 'Overstocked!')
+        : '✓ '  + (window.t ? window.t('stk_ok')         : 'OK');
+      statusEl.style.color = d.overstocked ? '#ff7a7a' : '#4caf50';
+      document.getElementById('stockingResult').style.display = '';
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    loadSettings();
+    fetch('/version').then(r => r.json()).then(d => {
+      document.getElementById('buildVersion').textContent = d.commit;
+    }).catch(() => {});
+
+  })();
+  </script>
+
+  <script src="/feedback.js"></script>
+</body>
+</html>
