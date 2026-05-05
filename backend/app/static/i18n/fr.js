@@ -491,7 +491,7 @@
     // ── PigMax UI ──────────────────────────────────────────────────────────────
     page_title:           'PigMax — Ventilation porcherie',
     app_title:            '🐷 PigMax',
-    source_label:         'PIC 2019',
+    source_label:         'Basé sur PIC 2019',
     section_inputs:       'Paramètres du bâtiment',
     label_num_pigs:       'Nombre de porcs',
     label_avg_weight:     'Poids vif moyen, kg',
@@ -548,4 +548,9 @@
     hb_duty_cycle:        'Taux de fonctionnement chaudière',
     hb_no_ua:             'Enregistrez les paramètres du bâtiment pour calculer les pertes par parois.',
     hb_self_heated:       '✓ Pas de chauffage nécessaire — les animaux chauffent le bâtiment.',
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_disclaimer:      'Outil de référence uniquement. Vérifiez tous les réglages avec votre guide de race et votre vétérinaire.',
+    footer_see_also:        'Voir aussi :',
+    footer_related_broiler: 'Calculateur ventilation poulailler',
 };

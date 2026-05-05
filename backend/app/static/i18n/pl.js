@@ -491,7 +491,7 @@
     // ── PigMax UI ──────────────────────────────────────────────────────────────
     page_title:           'PigMax — Wentylacja chlewni',
     app_title:            '🐷 PigMax',
-    source_label:         'PIC 2019',
+    source_label:         'Na podstawie PIC 2019',
     section_inputs:       'Parametry budynku',
     label_num_pigs:       'Liczba świń',
     label_avg_weight:     'Średnia masa żywca, kg',
@@ -548,4 +548,9 @@
     hb_duty_cycle:        'Współczynnik pracy grzejnika',
     hb_no_ua:             'Zapisz parametry budynku, aby zobaczyć straty przez przegrody.',
     hb_self_heated:       '✓ Ogrzewanie niepotrzebne — zwierzęta same ogrzewają budynek.',
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_disclaimer:      'Tylko narzędzie referencyjne. Weryfikuj wszystkie nastawy z przewodnikiem rasy i doradcą weterynaryjnym.',
+    footer_see_also:        'Zobacz też:',
+    footer_related_broiler: 'Kalkulator wentylacji kurnika',
 };

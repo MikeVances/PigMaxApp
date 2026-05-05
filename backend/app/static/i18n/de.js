@@ -491,7 +491,7 @@
     // ── PigMax UI ──────────────────────────────────────────────────────────────
     page_title:           'PigMax — Stallklima Schwein',
     app_title:            '🐷 PigMax',
-    source_label:         'PIC 2019',
+    source_label:         'Basierend auf PIC 2019',
     section_inputs:       'Stallparameter',
     label_num_pigs:       'Anzahl Schweine',
     label_avg_weight:     'Durchschn. Lebendgewicht, kg',
@@ -548,4 +548,9 @@
     hb_duty_cycle:        'Einschaltdauer Heizung',
     hb_no_ua:             'Gebäudeparameter speichern um Transmissionsverluste zu berechnen.',
     hb_self_heated:       '✓ Keine Heizung nötig — Tiere heizen den Stall selbst.',
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_disclaimer:      'Nur als Referenzwerkzeug. Alle Sollwerte mit Herdenhandbuch und Tierarzt prüfen.',
+    footer_see_also:        'Auch interessant:',
+    footer_related_broiler: 'Lüftungsrechner Hähnchenstall',
 };

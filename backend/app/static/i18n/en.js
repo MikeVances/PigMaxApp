@@ -491,7 +491,7 @@
     // ── PigMax UI ──────────────────────────────────────────────────────────────
     page_title:           'PigMax — Pig House Ventilation',
     app_title:            '🐷 PigMax',
-    source_label:         'PIC 2019',
+    source_label:         'Based on PIC 2019',
     section_inputs:       'House Parameters',
     label_num_pigs:       'Number of pigs',
     label_avg_weight:     'Avg live weight, kg',
@@ -548,4 +548,9 @@
     hb_duty_cycle:        'Heater duty cycle',
     hb_no_ua:             'Save building settings to see wall/roof heat losses.',
     hb_self_heated:       '✓ No heating needed — pigs self-heat the house.',
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    footer_disclaimer:      'Reference tool only. Verify all setpoints with your breed guide and veterinary advisor.',
+    footer_see_also:        'Also see:',
+    footer_related_broiler: 'Broiler house ventilation calculator',
 };
