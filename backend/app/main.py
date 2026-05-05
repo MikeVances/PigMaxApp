@@ -7,7 +7,8 @@ from .routers import pig_calc
 from .routers import pig_settings as settings_router
 from .routers import feedback as feedback_router
 
-load_dotenv()
+# Ищем .env рядом с backend/ независимо от рабочей директории запуска
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 app = FastAPI(title="PigMax — Pig House Ventilation", version="0.1.0")
 
