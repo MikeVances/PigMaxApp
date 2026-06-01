@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PigMax — Pig House Ventilation</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <script src="/i18n/en.js"></script>
-  <script src="/i18n/ru.js"></script>
-  <script src="/i18n/pl.js"></script>
-  <script src="/i18n/de.js"></script>
-  <script src="/i18n/fr.js"></script>
-  <script src="/i18n.js"></script>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./i18n/en.js"></script>
+  <script src="./i18n/ru.js"></script>
+  <script src="./i18n/pl.js"></script>
+  <script src="./i18n/de.js"></script>
+  <script src="./i18n/fr.js"></script>
+  <script src="./i18n.js"></script>
 </head>
 <body data-page-title="page_title">
   <main class="container">
@@ -265,7 +265,7 @@
 
     async function loadSettings() {
       try {
-        const r = await fetch('/settings');
+        const r = await fetch('./settings');
         if (!r.ok) return;
         const s = await r.json();
         currentSettings = s;
@@ -296,7 +296,7 @@
           heater_type:    document.getElementById('heaterType').value,
         }
       };
-      const r = await fetch('/settings', {
+      const r = await fetch('./settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -319,7 +319,7 @@
       if (!numPigs || !weight || isNaN(tOutside)) return;
 
       // Ventilation
-      const rv = await fetch('/calc/ventilation', {
+      const rv = await fetch('./calc/ventilation', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, t_outside_c: tOutside, season }),
       });
@@ -346,7 +346,7 @@
         building_volume_m3: s ? s.building.volume_m3 : null,
         total_heater_kw:    s ? s.heater.total_power_kw : null,
       };
-      const rh = await fetch('/calc/heat-balance', {
+      const rh = await fetch('./calc/heat-balance', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify(hbPayload),
       });
@@ -382,7 +382,7 @@
       const floorType = document.getElementById('floorType').value;
       if (!weight || !numPigs || !floorArea) return;
 
-      const r = await fetch('/calc/stocking', {
+      const r = await fetch('./calc/stocking', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, floor_area_m2: floorArea, floor_type: floorType }),
       });
@@ -404,13 +404,13 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
     loadSettings();
-    fetch('/version').then(r => r.json()).then(d => {
+    fetch('./version').then(r => r.json()).then(d => {
       document.getElementById('buildVersion').textContent = d.commit;
     }).catch(() => {});
 
   })();
   </script>
 
-  <script src="/feedback.js"></script>
+  <script src="./feedback.js"></script>
 </body>
 </html>

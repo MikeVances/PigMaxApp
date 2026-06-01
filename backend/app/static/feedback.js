@@ -70,7 +70,7 @@
       statusEl.style.color = '';
 
       try {
-        const resp = await fetch('/feedback', {
+        const resp = await fetch('./feedback', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
