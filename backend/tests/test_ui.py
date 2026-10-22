@@ -21,7 +21,7 @@ def _keys(lang: str) -> set[str]:
 
 
 def _used() -> set[str]:
-    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "design.html", "design.js", "profiles.js", "feedback.js"))
+    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "feedback.js"))
     used = set(re.findall(r'data-i18n(?:-[a-z]+)?="([a-z_0-9]+)"', text))
     # t('ключ') и tr('ключ', запасной) — оба; 'err_' + код — префикс, не ключ
     used |= {k for k in re.findall(r"\btr?\('([a-z_0-9]+)'", text) if not k.endswith('_')}
@@ -73,7 +73,7 @@ def test_language_switch_event_exists():
     assert "addEventListener('langchange'" in (STATIC / "index.html").read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("name", ["index.html", "design.html", "design.js", "profiles.js", "feedback.js"])
+@pytest.mark.parametrize("name", ["index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "feedback.js"])
 def test_styles_live_in_css(name):
     # Оформление — в styles.css; во встроенных стилях допустим только display:none:
     # это состояние, которое переключает скрипт, а не оформление
@@ -112,3 +112,12 @@ def test_ui_design_route_errors(client):
 def test_design_page_is_served(client):
     html = client.get("/design.html").text
     assert 'id="dRun"' in html and "design.js" in html
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_no_duplicate_keys(lang):
+    # В объекте JS второй ключ молча перекрывает первый: правка «первого» текста
+    # не видна на странице, и дубль годами живёт незамеченным
+    text = (STATIC / "i18n" / f"{lang}.js").read_text(encoding="utf-8")
+    keys = re.findall(r"^\s+([a-z_0-9]+)\s*:", text, re.M)
+    assert len(keys) == len(set(keys)), sorted({k for k in keys if keys.count(k) > 1})

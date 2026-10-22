@@ -97,3 +97,16 @@ def test_rectal_threshold_is_lower_bound():
     # 25.0 °C: ректальная температура (нижняя граница 24.6) уже, корм (25.5) ещё нет
     r = heat_stress(25.0, 65, 65, "air", [], [])
     assert r["exceeded"] == ["respiration", "heat_production", "rectal_temperature"]
+
+
+def test_effective_temperature_tool_adds_heat_stress(client):
+    base = {"t_air_c": 30, "air_speed_ms": 0.2}
+    assert "heat_stress" not in client.post("/calc/effective-temperature", json=base).json()
+    j = client.post("/calc/effective-temperature", json={**base, "rh_pct": 70, "weight_kg": 65}).json()
+    assert j["heat_stress"]["t_c"] == j["t_effective_c"] and j["heat_stress"]["temperature_basis"] == "effective"
+    assert "huynh_2005" in j["sources"]
+
+
+def test_tools_page_is_served(client):
+    html = client.get("/tools.html").text
+    assert 'id="fRun"' in html and "tools.js" in html

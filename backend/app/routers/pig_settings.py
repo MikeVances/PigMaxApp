@@ -81,6 +81,10 @@ def put_settings(payload: SettingsPayload):
         s.heater = payload.heater
     if payload.ua_coefficient is not None:
         s.ua_coefficient = payload.ua_coefficient
+        # UA задан вручную (по конструкции) — прежняя калибровка к нему уже не
+        # относится: запись теста с другим UA читалась бы как подтверждение числа
+        if payload.calibration is None:
+            s.calibration = None
     if payload.calibration is not None:
         # Пересчёт по отметкам и те же проверки, что в MINMAXapp: короткий тест,
         # неправдоподобный U оболочки, неразличимый UA — в расчёт не пускаем

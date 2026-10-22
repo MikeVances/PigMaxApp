@@ -49,3 +49,11 @@ def test_calibration_needs_write_token(client, monkeypatch):
 def test_bad_taps(client):
     r = client.post("/calc/calibrate-ua", json={"t_outside_c": -5, "points": POINTS[:3]})
     assert r.status_code == 422 and r.json()["detail"]["code"] == "too_few_taps"
+
+
+def test_manual_ua_drops_old_calibration(client, settings_file):
+    # UA по конструкции (страница инструментов) поверх калибровки: запись теста с
+    # другим UA больше не относится к числу и не должна его «подтверждать»
+    client.put("/settings", json={"calibration": {"t_outside_c": -5, "points": POINTS}})
+    saved = client.put("/settings", json={"ua_coefficient": 777.0}).json()
+    assert saved["ua_coefficient"] == 777.0 and saved["calibration"] is None

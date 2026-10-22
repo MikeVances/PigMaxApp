@@ -21,6 +21,7 @@ from ..core import genetics as genetics_mod
 from ..core import tunnel_design as T
 from ..core.errors import CalcError
 from ..core.max_ventilation import DEFAULT_RISE_C, MaxNorm, max_ventilation
+from ..core.heat_stress import heat_stress
 from ..core.pig_effective_temp import Floor, effective_temperature
 from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, MethodNotApplicable
 from ..core.psychro import pressure_at_altitude_pa
@@ -215,13 +216,22 @@ class EffectiveTempRequest(BaseModel):
     air_speed_ms: float = Field(0.0, ge=0, le=6)
     floor: Floor = "concrete_slats"
     setpoint_c: Optional[float] = Field(None, ge=5, le=40)
+    # Оба заданы — заодно тепловой стресс растущих (Huynh 2005) при эффективной температуре
+    rh_pct: Optional[float] = Field(None, ge=1, le=100)
+    weight_kg: Optional[float] = Field(None, gt=0, le=400)
 
 
 @router.post("/calc/effective-temperature")
 def calc_effective_temperature(req: EffectiveTempRequest):
     """Эффективная температура у свиней: воздух, скорость (McFarlane), пол (Close)."""
     r = effective_temperature(req.t_air_c, req.air_speed_ms, req.floor, req.setpoint_c)
-    return dataclasses.asdict(r)
+    out = dataclasses.asdict(r)
+    if req.rh_pct is not None and req.weight_kg is not None:
+        notes: list[dict] = []
+        out["heat_stress"] = heat_stress(r.t_effective_c, req.rh_pct, req.weight_kg, "effective", notes, out["warnings"])
+        out["assumptions"] = out["assumptions"] + notes
+        out["sources"] = out["sources"] + ["huynh_2005"]
+    return out
 
 
 # ─── Тест герметичности ───────────────────────────────────────────────────────

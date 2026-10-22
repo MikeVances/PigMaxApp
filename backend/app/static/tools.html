@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PigMax — Tools</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./i18n/en.js"></script>
+  <script src="./i18n/ru.js"></script>
+  <script src="./i18n/pl.js"></script>
+  <script src="./i18n/de.js"></script>
+  <script src="./i18n/fr.js"></script>
+  <script src="./i18n.js"></script>
+</head>
+<body data-page-title="tools_title">
+  <main class="container">
+
+    <div class="page-header">
+      <h1 class="m0" data-i18n="tools_title">🐷 PigMax — Tools</h1>
+      <nav class="nav-links">
+        <a href="./index.html" class="link-plain" data-i18n="nav_now">Now</a>
+        <a href="./design.html" class="link-plain" data-i18n="nav_design">Design &amp; sows</a>
+        <a href="./tools.html" class="link-plain nav-active" data-i18n="nav_tools">Tools</a>
+      </nav>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="envelope" data-i18n="tl_tab_envelope">Envelope UA</button>
+      <button class="tab" data-tab="leakage" data-i18n="tl_tab_leakage">Airtightness test</button>
+      <button class="tab" data-tab="calibration" data-i18n="tl_tab_calibration">UA calibration</button>
+      <button class="tab" data-tab="evap" data-i18n="tl_tab_evap">Pad cooling</button>
+      <button class="tab" data-tab="tunnel" data-i18n="tl_tab_tunnel">Tunnel fans</button>
+      <button class="tab" data-tab="effective" data-i18n="tl_tab_effective">Effective temperature</button>
+    </div>
+
+    <!-- ── envelope ── -->
+    <section id="tool-envelope" class="tool">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="d_length">Length, m</span><input id="eLength" class="field" type="number" step="any" value="60" /></label>
+          <label><span class="muted small" data-i18n="d_width">Width, m</span><input id="eWidth" class="field" type="number" step="any" value="18" /></label>
+          <label><span class="muted small" data-i18n="d_wall">Wall height, m</span><input id="eWall" class="field" type="number" step="any" value="2.6" /></label>
+          <label><span class="muted small" data-i18n="d_ridge">Ridge height, m</span><input id="eRidge" class="field" type="number" step="any" value="4.0" /></label>
+          <label><span class="muted small" data-i18n="d_u_walls">Walls U, W/(m²·K)</span><input id="eUWalls" class="field" type="number" step="any" value="0.25" /></label>
+          <label><span class="muted small" data-i18n="d_u_roof">Roof U, W/(m²·K)</span><input id="eURoof" class="field" type="number" step="any" value="0.22" /></label>
+          <label><span class="muted small" data-i18n="tl_u_end">End walls U, W/(m²·K) (empty — as walls)</span><input id="eUEnd" class="field" type="number" step="any" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="eRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+          <button id="eSave" class="btn btn-secondary" data-i18n="tl_btn_save_ua">Save UA to house settings</button>
+          <span id="eDone" class="ok-note" style="display:none;"></span>
+        </div>
+        <div id="eError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="eResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="eRows"></tbody></table>
+        <ul id="eWarnings" class="warn-list"></ul>
+        <ul id="eNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── leakage ── -->
+    <section id="tool-leakage" class="tool" style="display:none;">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="d_length">Length, m</span><input id="lLength" class="field" type="number" step="any" value="60" /></label>
+          <label><span class="muted small" data-i18n="d_width">Width, m</span><input id="lWidth" class="field" type="number" step="any" value="18" /></label>
+          <label><span class="muted small" data-i18n="tl_fan_25">Test fans at 25 Pa, m³/h</span><input id="lFan" class="field" type="number" step="any" value="20000" /></label>
+          <label><span class="muted small" data-i18n="tl_pressure">Measured pressure, Pa</span><input id="lPressure" class="field" type="number" step="any" value="25" /></label>
+        </div>
+        <label><span class="muted small" data-i18n="tl_extra_points">More points: flow at 25 Pa and pressure, per line (gives leak at 4 Pa)</span><textarea id="lExtra" class="points mt-6"></textarea></label>
+        <div class="row-actions">
+          <button id="lRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+        </div>
+        <div id="lError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="lResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="lRows"></tbody></table>
+        <ul id="lWarnings" class="warn-list"></ul>
+        <ul id="lNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── calibration ── -->
+    <section id="tool-calibration" class="tool" style="display:none;">
+      <div class="card mb">
+        <p class="muted small mb-8" data-i18n="tl_cal_intro">Heat the EMPTY house…</p>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="label_t_outside">Outside temp, °C</span><input id="cTOut" class="field" type="number" step="any" value="0" /></label>
+          <label><span class="muted small" data-i18n="tl_volume">House volume, m³ (empty — from settings)</span><input id="cVolume" class="field" type="number" step="any" /></label>
+          <label><span class="muted small" data-i18n="tl_start_temp">Inside temperature at start, °C</span><input id="cStartTemp" class="field" type="number" step="any" value="25" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="cStart" class="btn btn-secondary" data-i18n="tl_start">Start</button>
+          <button id="cTap" class="btn btn-secondary" data-i18n="tl_tap" disabled>−1 °C</button>
+          <button id="cReset" class="btn btn-secondary" data-i18n="tl_reset">Clear</button>
+          <strong id="cClock" class="num">0:00</strong>
+        </div>
+        <label><span class="muted small" data-i18n="tl_taps">Marks: seconds from start and temperature, per line</span><textarea id="cPoints" class="points mt-6"></textarea></label>
+        <div class="row-actions">
+          <button id="cRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+          <button id="cSave" class="btn btn-secondary" data-i18n="tl_btn_save_cal">Save calibration to settings</button>
+          <span id="cDone" class="ok-note" style="display:none;"></span>
+        </div>
+        <div id="cError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="cResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="cRows"></tbody></table>
+        <ul id="cWarnings" class="warn-list"></ul>
+        <ul id="cNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── evap ── -->
+    <section id="tool-evap" class="tool" style="display:none;">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="tl_house_length">House length, m</span><input id="vLength" class="field" type="number" step="any" value="60" /></label>
+          <label><span class="muted small" data-i18n="label_t_outside">Outside temp, °C</span><input id="vTOut" class="field" type="number" step="any" value="32" /></label>
+          <label><span class="muted small" data-i18n="label_rh_outside">Outside RH, %</span><input id="vRh" class="field" type="number" step="any" value="40" /></label>
+          <label><span class="muted small" data-i18n="tl_fan_total">Tunnel fans total, m³/h</span><input id="vFan" class="field" type="number" step="any" value="200000" /></label>
+          <label><span class="muted small" data-i18n="tl_pad_type">Pad</span><select id="vType" class="field"><option value="7090">SANHE 7090</option><option value="7060">SANHE 7060</option><option value="5090">SANHE 5090</option></select></label>
+          <label><span class="muted small" data-i18n="tl_pad_thick">Thickness, mm</span><select id="vThick" class="field"><option>100</option><option selected>150</option><option>200</option></select></label>
+          <label><span class="muted small" data-i18n="tl_pad_length">Pad length, m</span><input id="vPadLen" class="field" type="number" step="any" value="36" /></label>
+          <label><span class="muted small" data-i18n="tl_pad_height">Pad height, m</span><input id="vPadH" class="field" type="number" step="any" value="1.5" /></label>
+          <label><span class="muted small" data-i18n="tl_target">Target inside, °C</span><input id="vTarget" class="field" type="number" step="any" value="26" /></label>
+          <label><span class="muted small" data-i18n="tl_pigs">Pigs</span><input id="vCount" class="field" type="number" step="any" value="1000" /></label>
+          <label><span class="muted small" data-i18n="tl_pig_weight">Pig weight, kg</span><input id="vWeight" class="field" type="number" step="any" value="100" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="vRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+        </div>
+        <div id="vError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="vResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="vRows"></tbody></table>
+        <ul id="vWarnings" class="warn-list"></ul>
+        <ul id="vNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── tunnel ── -->
+    <section id="tool-tunnel" class="tool" style="display:none;">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="tl_target_flow">Required flow, m³/h</span><input id="tTarget" class="field" type="number" step="any" value="200000" /></label>
+          <label><span class="muted small" data-i18n="tl_section">House cross-section, m²</span><input id="tSection" class="field" type="number" step="any" value="55" /></label>
+          <label><span class="muted small" data-i18n="tl_pad_type">Pad</span><select id="tType" class="field"><option value="" data-i18n="d_pads_none">None</option><option value="7090">SANHE 7090</option><option value="7060">SANHE 7060</option><option value="5090">SANHE 5090</option></select></label>
+          <label><span class="muted small" data-i18n="tl_pad_thick">Thickness, mm</span><select id="tThick" class="field"><option>100</option><option selected>150</option><option>200</option></select></label>
+          <label><span class="muted small" data-i18n="tl_pad_area_opt">Pad area, m² (empty — by UGA design speed)</span><input id="tPadArea" class="field" type="number" step="any" /></label>
+        </div>
+        <label><span class="muted small" data-i18n="tl_fan_curve">Fan curve from the catalogue: pressure Pa and flow m³/h, per line</span><textarea id="tCurve" class="points mt-6">0	44000
+10	42000
+20	39500
+30	36500
+40	33000
+50	29000</textarea></label>
+        <div class="row-actions">
+          <button id="tRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+        </div>
+        <div id="tError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="tResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="tRows"></tbody></table>
+        <ul id="tWarnings" class="warn-list"></ul>
+        <ul id="tNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── effective ── -->
+    <section id="tool-effective" class="tool" style="display:none;">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="tl_t_air">Air temperature, °C</span><input id="fTAir" class="field" type="number" step="any" value="30" /></label>
+          <label><span class="muted small" data-i18n="tl_air_speed">Air speed at the pigs, m/s</span><input id="fSpeed" class="field" type="number" step="any" value="0.5" /></label>
+          <label><span class="muted small" data-i18n="tl_floor">Floor</span><select id="fFloor" class="field"><option value="concrete_slats" data-i18n="floor_concrete_slats">concrete_slats</option><option value="wood" data-i18n="floor_wood">wood</option><option value="asphalt" data-i18n="floor_asphalt">asphalt</option><option value="straw" data-i18n="floor_straw">straw</option><option value="wet_concrete" data-i18n="floor_wet_concrete">wet_concrete</option></select></label>
+          <label><span class="muted small" data-i18n="tl_setpoint_opt">Setpoint, °C (optional)</span><input id="fSetpoint" class="field" type="number" step="any" /></label>
+          <label><span class="muted small" data-i18n="tl_rh_opt">Inside RH, % (with weight — heat stress)</span><input id="fRh" class="field" type="number" step="any" value="65" /></label>
+          <label><span class="muted small" data-i18n="tl_pig_weight">Pig weight, kg</span><input id="fWeight" class="field" type="number" step="any" value="65" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="fRun" class="btn" data-i18n="btn_calculate">Calculate</button>
+        </div>
+        <div id="fError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+      <div id="fResult" class="card mb" style="display:none;">
+        <table class="table-plain"><tbody id="fRows"></tbody></table>
+        <ul id="fWarnings" class="warn-list"></ul>
+        <ul id="fNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <div class="page-footer" data-i18n="footer_disclaimer"></div>
+  </main>
+  <script src="./tools.js"></script>
+  <script src="./feedback.js"></script>
+</body>
+</html>
