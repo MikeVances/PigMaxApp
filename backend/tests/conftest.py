@@ -26,6 +26,7 @@ for _var in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WRITE_TOKEN"):
 from fastapi.testclient import TestClient  # noqa: E402
 
 from backend.app.main import app  # noqa: E402
+from backend.app.routers import feedback  # noqa: E402
 
 
 @pytest.fixture
@@ -41,6 +42,8 @@ def client(monkeypatch):
     # Каждый тест начинает с чистых настроек и без токена записи
     monkeypatch.delenv("WRITE_TOKEN", raising=False)
     SETTINGS_FILE.unlink(missing_ok=True)
+    # Счётчик лимита обратной связи общий на процесс — иначе тесты зависели бы от порядка
+    feedback._recent.clear()
     with TestClient(app) as c:
         yield c
     SETTINGS_FILE.unlink(missing_ok=True)

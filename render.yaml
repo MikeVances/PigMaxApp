@@ -7,3 +7,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
+      # Прокси Render дописывает адрес клиента в конец X-Forwarded-For — лимит
+      # обратной связи берёт запись на этой позиции с конца. Сверить по журналу
+      # («X-Forwarded-For из N записей»). WRITE_TOKEN сюда не пишем — это секрет,
+      # он задаётся в панели Render (Environment)
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"

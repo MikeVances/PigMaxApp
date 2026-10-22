@@ -90,6 +90,7 @@ Tests never touch `backend/data/`: settings go to a temporary file via `PIG_SETT
 | `WRITE_TOKEN` | If set, `PUT /settings` requires header `X-Write-Token` (the UI asks once). Unset — writes are open |
 | `PIG_SETTINGS_JSON` | Path to the settings file (default `backend/data/pig_settings.json`) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Feedback form delivery |
+| `TRUSTED_PROXY_HOPS` | Feedback allows 5 messages per 10 minutes per client. Number of `X-Forwarded-For` entries your own proxies append (`1` on Render — set in `render.yaml`). `0` (default) ignores the header: without a proxy the client writes it |
 
 References used by the calculator: [`docs/sources.md`](docs/sources.md).
 
