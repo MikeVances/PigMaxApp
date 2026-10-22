@@ -217,6 +217,90 @@ _SOURCES: tuple[Source, ...] = (
         limits="Только доращивание до 30 кг; откорм и нормы вентиляции на голову в открытой части руководства не даны.",
         url="https://danbred-manual.com/en/pig-finisher-manual/production-facilities/",
     ),
+
+    # ── Корпус, климат, панели — перенесено из MINMAXapp sources.py (59390c7) ──
+    Source(
+        id="br443_2019_s3", kind="standard",
+        citation="BRE BR 443 (2019) Conventions for U-value calculations, §3 — "
+                 "design values per BS EN ISO 10456 / CIBSE Guide A",
+        title="Conventions for U-value calculations (BR 443)", publisher="BRE", year=2019, locator="§3",
+        applies_to="теплопроводность λ материалов справочника",
+        statement="Расчётные значения λ строительных материалов по BS EN ISO 10456 и CIBSE Guide A.",
+        how_used="λ материала из справочника (`construction.MATERIALS`); U слоя = d/λ.",
+        limits="Для утеплителя точнее λ из паспорта (декларации) конкретной панели — его можно "
+               "передать в слое вместо материала.",
+    ),
+    Source(
+        id="br443_2019_s4_3", kind="standard",
+        citation="BRE BR 443 (2019) §4.3 — surface resistances per BS EN ISO 6946",
+        title="Conventions for U-value calculations (BR 443)", publisher="BRE", year=2019, locator="§4.3",
+        applies_to="сопротивления теплообмену у поверхностей",
+        statement="По ISO 6946: Rse = 0.04; Rsi = 0.13 для стен (горизонтальный поток) и 0.10 для "
+                  "кровли (поток вверх) м²·К/Вт.",
+        how_used="U = 1 / (Rsi + Σ d/λ + Rse); скат круче 60° считается стеной.",
+    ),
+    Source(
+        id="marcegaglia_dop_100p_2022", kind="manufacturer",
+        citation="Marcegaglia DoP 100P 09/2022 (EN 14509), PIR core λD 0.022 W/(m·K)",
+        title="Declaration of Performance 100P (EN 14509)", publisher="Marcegaglia", year=2022,
+        locator="DoP 09/2022",
+        applies_to="материал `pir_core` (сердечник PIR сэндвич-панели)",
+        statement="Заявленная теплопроводность сердечника PIR λD = 0.022 Вт/(м·К).",
+        how_used="λ материала `pir_core` в справочнике.",
+        limits="Значение одного производителя — типичное, не гарантия для чужих панелей.",
+    ),
+    Source(
+        id="ashrae_2017_ch1", kind="standard",
+        citation="ASHRAE Handbook Fundamentals 2017, ch. 1 — psychrometrics, standard atmosphere",
+        title="ASHRAE Handbook — Fundamentals", publisher="ASHRAE", year=2017, locator="гл. 1",
+        applies_to="влажный воздух и давление на высоте площадки",
+        statement="Психрометрические соотношения и давление стандартной атмосферы по высоте.",
+        how_used="Плотность и влагосодержание воздуха считаются при давлении на высоте `altitude_m`.",
+    ),
+    Source(
+        id="era5_open_meteo", kind="data",
+        citation="ERA5 via Open-Meteo (CC BY 4.0), 2015–2024",
+        title="ERA5 reanalysis via Open-Meteo Historical Weather API", publisher="ECMWF / Open-Meteo",
+        year=2024, locator="часовые данные 2015–2024", url="https://open-meteo.com",
+        applies_to="расчётные температуры площадки (`design_climate`)",
+        statement="Почасовые температура и влажность реанализа ERA5 за 10 лет.",
+        how_used="Зима — температура обеспеченностью 99.6 %; лето — 0.4 % по сухому термометру "
+                 "с совпадающей влажностью и 0.4 % по мокрому (предел панелей).",
+        limits="Реанализ сглаживает местные условия (низины, побережье) — при местных данных "
+               "лучше передать свои температуры. В PigMaxApp запрос к Open-Meteo — только через API v1 с ключом и лимитом.",
+    ),
+    Source(
+        id="sanhe_pads", kind="manufacturer",
+        citation="SANHE evaporative pad pressure-drop curves (digitised manufacturer data)",
+        title="Кривые сопротивления испарительных панелей", publisher="SANHE", year=None, locator=None,
+        applies_to="сопротивление панелей в статическом давлении туннеля",
+        statement="Падение давления на панели в зависимости от скорости воздуха и толщины.",
+        how_used="Слагаемое панелей в оценке давления туннеля и рабочей точке вентилятора.",
+        limits="Кривые оцифрованы с графиков производителя; значение 41 Па для 150 мм при 1.78 м/с "
+               "с поставщиком не сверено.",
+    ),
+    Source(
+        id="uga_pad_velocity", kind="extension",
+        citation="UGA (Czarick) Evaporative cooling pad design spreadsheet — 350 fpm (1.78 m/s) "
+                 "for 150 mm pads, 225 fpm (1.14 m/s) for 100 mm",
+        title="Evaporative cooling pad design spreadsheet", publisher="University of Georgia (M. Czarick)",
+        year=None, locator=None,
+        applies_to="площадь панелей испарительного (панельного) охлаждения",
+        statement="Проектная скорость воздуха через панель: 1.78 м/с для 150 мм, 1.14 м/с для 100 мм. "
+                  "Та же 1.78 м/с — в Cobb 2021 для панелей 15 см.",
+        how_used="`pad_area_m2` = проектный расход туннеля / проектная скорость панели.",
+    ),
+    Source(
+        id="amca_210", kind="standard",
+        citation="AMCA 210 — fan ratings at standard air 1.2 kg/m³",
+        title="AMCA 210 Laboratory Methods of Testing Fans", publisher="AMCA", year=None, locator=None,
+        applies_to="характеристики вентиляторов и оценка давления",
+        statement="Каталожные расходы вентиляторов даются при стандартном воздухе плотностью 1.2 кг/м³.",
+        how_used="Давление туннеля оценивается при 1.2 кг/м³, чтобы сравнивать его с каталожной "
+                 "кривой в тех же условиях; рабочая точка — пересечение с кривой из запроса.",
+        limits="Потери давления по длине корпуса не считаются (0), пока нет замеров — для корпусов "
+               "с перегородками станков это недооценка.",
+    ),
 )
 
 

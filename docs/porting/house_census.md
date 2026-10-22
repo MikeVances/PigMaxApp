@@ -1,0 +1,126 @@
+# Перепись переноса: физика корпуса MINMAXapp → PigMaxApp (этап 4)
+
+Метод — скилл faithful-porting: сначала реестр, потом перенос 1:1 по нему, потом
+поиск пропусков. Исходник — MINMAXapp `backend/app/core/`, коммит 59390c7.
+У каждого перенесённого модуля в шапке есть пометка `Source:` с путём исходника.
+
+Решения:
+
+| Решение | Значение |
+|---|---|
+| **PORT** | 1:1, меняются только импорты |
+| **ADAPT** | та же логика, заменён механизм: давление передаётся явно вместо `site_pressure_pa()` из настроек хозяйства, тепло свиней вместо птицы |
+| **SKIP** | не переносится — причина указана, это записанный пробел |
+
+## Мосты (меняются во всех модулях одинаково)
+
+- `psychro.site_pressure_pa()` (высота фермы из настроек MINMAXapp) → параметр
+  `p_pa=P_ATM_PA`. У PigMaxApp нет настроек хозяйства, высота приходит в запросе.
+- `bird_heat.house_heat_per_bird(w, t).sensible_w` → `pig_heat(group, w, t).sensible_w`
+  (CIGR 2002 для свиней, этап 1).
+- Имена «bird/birds» → «animal/animals» в полях и статусах
+  (`q_birds_kw` → `q_animals_kw`, `birds_sufficient` → `animals_sufficient`).
+
+## errors.py
+
+| Единица | Решение |
+|---|---|
+| `CalcError.__init__`, `_message`, `detail` | PORT |
+
+## psychro.py (дополнение к этапу 2)
+
+| Единица | Решение |
+|---|---|
+| `sat_pressure_ice_pa`, `_w_from_wet_bulb`, `wet_bulb_c` | ADAPT (p явно) |
+| `dew_point_c` | PORT |
+| `specific_volume_m3_per_kg_da` | ADAPT (p явно) |
+| `moist_air_density` | ADAPT (p явно) |
+| `site_pressure`, `site_pressure_pa`, `_pressure_override`, `_p` | SKIP — механизм заменён явным `p_pa` |
+
+## building_thermal.py
+
+| Единица | Решение |
+|---|---|
+| `BuildingDimensions` | PORT |
+| `U_ENVELOPE_MIN_W_M2K`, `U_ENVELOPE_MAX_W_M2K`, `envelope_area_m2`, `R_SI_M2K_W` | PORT |
+| `surface_condensation` | PORT |
+| `AIR_CP_J_PER_KG_K` | PORT |
+| `air_density_kg_m3` | ADAPT (p явно) |
+| `heater_air_demand` | PORT |
+| `heater_co2_dilution_m3h` | PORT + параметры `limit_ppm=3000`, `outdoor_ppm=400` (по умолчанию значения исходника: ΔCO₂ = 2.6 л/м³) |
+| `air_temperature_rise_c` | ADAPT (тепло свиней) |
+| `ventilation_heat_w` | ADAPT (p явно) |
+| `HeaterDuty`, `solve_heater_duty` | PORT (`birds_sensible_w` → `animals_sensible_w`) |
+| `HeatBalance`, `calculate_heat_balance` | ADAPT (тепло свиней, имена полей) + необязательные `animals_sensible_w` (явное тепло поголовья, посчитанное снаружи — свиноматки, другая методика, ks) и `co2_limit_ppm` / `co2_outdoor_ppm` для горелок; по умолчанию поведение исходника |
+| `bird_sensible_heat_w` | ADAPT → `animal_sensible_heat_w` |
+| `HeaterConfig`, `CalibrationTest`, `ThermalConfig`, `THERMAL_CONFIG_PATH`, хранилище по корпусам (`_config_*`, `load_*`, `save_*`, `rename_house`, `HouseIdTaken`), `usable_ua`, `calibration_problem`, `calculate_ua_coefficient`, `MIN_CALIBRATION_MINUTES` | **SKIP** — калибровка UA по тесту остывания и её хранение. PigMaxApp считает UA по конструкции (`construction.py`) или берёт введённый. Пробел: калибровка по факту — в этапе интерфейса |
+
+## construction.py — PORT целиком
+
+`Material`, `_MATERIALS` (15 материалов, λ дословно), `MATERIALS`, `R_SE_M2K_W`,
+`R_SI_HORIZONTAL_M2K_W`, `R_SI_UPWARD_M2K_W`, `_STEEP_ROOF_DEG`,
+`surface_resistance_si`, `_LAMBDA_MIN`, `_LAMBDA_MAX`, `Layer`, `Surface`,
+`layer_resistance`, `surface_u`, `HouseGeometry`, `EnvelopeAreas`,
+`envelope_areas`, `EnvelopeUA`, `envelope_ua`.
+
+## design_climate.py — PORT целиком
+
+`ARCHIVE_URL`, `YEARS`, `SOURCE`, `DesignConditions`, `_percentile`,
+`design_conditions`, `fetch_hourly`. Метод API (`/climate-designs`) — только на
+этапе API v1 с ключами и лимитами: запрос к Open-Meteo тратит бесплатную квоту.
+
+## evap_cooling_calc.py — PORT целиком
+
+`_V_DESIGN_BY_THICKNESS`, `design_pad_velocity_ms`, `SANHE_PADS` (3 типа, таблицы
+дословно), `PAD_TYPE_DEFAULT`, `EvapCoolingInput` (ADAPT: `num_birds`,
+`bird_weight_kg` → `num_animals`, `animal_weight_kg`; + `p_pa`),
+`EvapCoolingResult`, `_interp_linear`, `_water_flow_lpm` (ADAPT p),
+`FAN_RATING_POINT_PA`, `_pad_pressure_pa`, `pad_operating_airflow_m3s`,
+`calculate_evap_cooling` (ADAPT p, тепло свиней).
+
+## tunnel_speed_calc.py — частично
+
+| Единица | Решение |
+|---|---|
+| `FAN_RATING_POINT_PA`, `RHO_STD_AIR`, `CD_INLET`, `CD_INLET_OPEN` | PORT |
+| `_fan_operating_flow_m3s`, `_operating_flow_with_pad_m3s` | PORT |
+| `_EFF_TEMP_TABLE`, `_T_KEYS`, `_RH_KEYS`, `_V_KEYS`, `_interp_v`, `_table_value`, `_wind_cooling_c`, `_effective_temperature`, `_T_WIND_*`, `_T_BIRD_SURFACE_C` | **SKIP** — эффективная температура ПТИЦЫ. Свиной аналог (McFarlane, Close) — новый модуль `pig_effective_temp.py`, не перенос |
+| `_THVI_THRESHOLDS`, `_THVI_V_RANGE`, `_calc_thvi` | **SKIP** — индекс THVI бройлеров |
+| `_SPEED_TARGETS`, `target_speed_range`, `EFFECTIVE_TEMP_MAX_C`, `_T_LIMIT_CAP`, `_find_tunnel_temp_limit`, `MAX_END_TO_END_RISE_C`, `TunnelSpeedInput`, `TunnelSpeedResult`, `_lerp`, `calculate_tunnel_speed` | **SKIP** — инструмент туннеля по скоростям для птицы по возрасту (Cobb). Для свиней скорость — по весу (RD-APK табл. 18, PIC); пересобирается на этапе проектного расчёта |
+
+## tunnel_design.py — PORT целиком
+
+`HIGH_TUNNEL_PRESSURE_PA`, `Pads`, `TunnelPressure`, `FanSelection`,
+`pad_area_m2`, `_pad_table`, `Resistance` (`__init__`, `parts`, `__call__`),
+`check_fan_curve`, `fan_flow_m3h`, `_operating_point`, `select_fans`.
+
+## Не переносятся
+
+| Модуль | Причина |
+|---|---|
+| `apparent_temp.py` | поправка уставки по RH для бройлеров (Ross табл. 2.5); у свиней аналога нет |
+| `leakage_calc.py` | тест герметичности — инструмент обслуживания, а не проектного расчёта (пробел) |
+| `cooling_fit.py` | калибровка UA по кривой остывания — вместе с хранилищем калибровки (пробел) |
+
+## Источники (`sources.py`) — PORT записей
+
+`br443_2019_s3`, `br443_2019_s4_3`, `marcegaglia_dop_100p_2022`,
+`ashrae_2017_ch1`, `era5_open_meteo`, `sanhe_pads`, `uga_pad_velocity`, `amca_210`.
+
+## Проход 3 — итог (2026-10-22)
+
+- **Трассируемость** (`traceability_check.py --window 16`): 52/52 функции с пометкой
+  `Source:`, все ссылки разрешаются в MINMAXapp. Окно 16 строк — из-за многострочных
+  сигнатур: пометка стоит первой строкой тела.
+- **Перепись констант** (`gap_check.py`): 18/46 перенесено. Все 28 отсутствующих —
+  SKIP этого реестра: калибровка (`building_thermal`), `leakage_calc`, `cooling_fit`,
+  птичья часть `tunnel_speed_calc`, `apparent_temp`. Неожиданных пропусков нет.
+- **Перепись функций** (сравнение имён по модулям): отсутствуют ровно единицы SKIP,
+  лишних функций в порте нет.
+- **Паритет поведения**: те же входы — в оригинале и в порте. 218 + 5 сценариев
+  решателя горелок, расхождений нет (точность 1e-9), ветки решателя — полная,
+  частичная (бисекция), нулевая загрузка, электрические, пол обмена. Значения
+  оригинала заморожены в `backend/tests/data/minmax_house_parity_59390c7.json`,
+  тест `test_house_parity.py` держит паритет при будущих правках. Проверка от
+  обратного: R_se 0.04 → 0.05, одна точка таблицы SANHE и запас горелок 1.5 → 1.4 —
+  тест краснеет на каждом.

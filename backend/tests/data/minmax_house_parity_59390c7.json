@@ -1,0 +1,308 @@
+{
+ "_comment": "Значения, посчитанные ОРИГИНАЛОМ MINMAXapp 59390c7 (backend/app/core) на входах из backend/tests/parity/probe.py; высота 0 м. Пересчитывать только из оригинала.",
+ "values": {
+  "air": [
+   95.0,
+   189759.23826969683,
+   1.3416302489074674
+  ],
+  "co2dil": [
+   0.0,
+   3461.5384615384614,
+   11538.461538461539,
+   0.0
+  ],
+  "cond": [
+   10.605997931747673,
+   12.4516141865923,
+   true
+  ],
+  "design": {
+   "cooling_04_db_c": 34.8,
+   "cooling_04_mcwb_c": 27.3,
+   "cooling_04_rh_pct": 60.0,
+   "elevation_m": 250.0,
+   "evap_04_wb_c": 31.2,
+   "heating_996_c": -24.8,
+   "hours": 8784,
+   "source": "ERA5 via Open-Meteo (CC BY 4.0), 2015–2024"
+  },
+  "duty": {
+   "duty_cycle": 1.0,
+   "full_load_need_w": 374427.13614666864,
+   "heat_need_w": 374427.13614666864,
+   "insufficient": true,
+   "qmin_m3h": 34423.07692307692
+  },
+  "duty2": {
+   "duty_cycle": 1.0,
+   "full_load_need_w": 468626.9391493504,
+   "heat_need_w": 468626.9391493504,
+   "insufficient": true,
+   "qmin_m3h": 20000
+  },
+  "duty_floor": {
+   "duty_cycle": 0.2298104900108765,
+   "full_load_need_w": 91924.1960043506,
+   "heat_need_w": 91924.1960043506,
+   "insufficient": false,
+   "qmin_m3h": 5000
+  },
+  "duty_no_heater": {
+   "duty_cycle": 0.0,
+   "full_load_need_w": 45305.24500543822,
+   "heat_need_w": 45305.24500543822,
+   "insufficient": true,
+   "qmin_m3h": 15000
+  },
+  "duty_partial_el": {
+   "duty_cycle": 0.11326311251359555,
+   "full_load_need_w": 45305.24500543822,
+   "heat_need_w": 45305.24500543822,
+   "insufficient": false,
+   "qmin_m3h": 15000
+  },
+  "duty_partial_gas": {
+   "duty_cycle": 0.20579656644056596,
+   "full_load_need_w": 225159.4680907278,
+   "heat_need_w": 82318.62657622638,
+   "insufficient": false,
+   "qmin_m3h": 19749.15153324383
+  },
+  "duty_self_heated": {
+   "duty_cycle": 0.0,
+   "full_load_need_w": 0.0,
+   "heat_need_w": 0.0,
+   "insufficient": false,
+   "qmin_m3h": 3000
+  },
+  "envelope": [
+   776.91046422362,
+   0.21206773366297657,
+   1.932730923694779,
+   0.25,
+   2371.6356087258873,
+   9.462322208025615
+  ],
+  "evap_5090_100": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.26,
+   "airflow_basis": "operating_point",
+   "airflow_m3h": 245382.0,
+   "cooling_achieved_c": 9.6,
+   "cooling_sufficient": true,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.8843,
+   "pad_pressure_drop_pa": 28.8,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 59.79,
+   "status_code": "cooling_marginal",
+   "status_level": "warn",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 24.4,
+   "t_pad_out_c": 24.4,
+   "t_wb_c": 23.2,
+   "temp_margin_c": 1.6,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 19.0,
+   "water_per_hour_l": 1142.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "evap_5090_150": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.54,
+   "airflow_basis": "rated_0pa",
+   "airflow_m3h": 300000.0,
+   "cooling_achieved_c": 10.2,
+   "cooling_sufficient": true,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.9383,
+   "pad_pressure_drop_pa": 54.3,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 46.82,
+   "status_code": "ok",
+   "status_level": "ok",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 23.8,
+   "t_pad_out_c": 23.8,
+   "t_wb_c": 23.2,
+   "temp_margin_c": 2.2,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 24.7,
+   "water_per_hour_l": 1484.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "evap_7060_100": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.44,
+   "airflow_basis": "operating_point",
+   "airflow_m3h": 279519.0,
+   "cooling_achieved_c": 6.9,
+   "cooling_sufficient": false,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.6375,
+   "pad_pressure_drop_pa": 10.8,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 68.11,
+   "status_code": "cooling_insufficient",
+   "status_level": "danger",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 27.1,
+   "t_pad_out_c": 27.1,
+   "t_wb_c": 23.2,
+   "temp_margin_c": -1.1,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 15.5,
+   "water_per_hour_l": 931.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "evap_7060_150": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.54,
+   "airflow_basis": "rated_0pa",
+   "airflow_m3h": 300000.0,
+   "cooling_achieved_c": 8.2,
+   "cooling_sufficient": true,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.7565,
+   "pad_pressure_drop_pa": 16.9,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 46.82,
+   "status_code": "cooling_marginal",
+   "status_level": "warn",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 25.8,
+   "t_pad_out_c": 25.8,
+   "t_wb_c": 23.2,
+   "temp_margin_c": 0.2,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 19.8,
+   "water_per_hour_l": 1190.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "evap_7090_100": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.38,
+   "airflow_basis": "operating_point",
+   "airflow_m3h": 267561.0,
+   "cooling_achieved_c": 7.9,
+   "cooling_sufficient": false,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.7324,
+   "pad_pressure_drop_pa": 17.1,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 65.2,
+   "status_code": "cooling_insufficient",
+   "status_level": "danger",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 26.1,
+   "t_pad_out_c": 26.1,
+   "t_wb_c": 23.2,
+   "temp_margin_c": -0.1,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 17.1,
+   "water_per_hour_l": 1027.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "evap_7090_150": {
+   "air_temp_rise_c": 0.0,
+   "air_velocity_ms": 1.54,
+   "airflow_basis": "rated_0pa",
+   "airflow_m3h": 300000.0,
+   "cooling_achieved_c": 9.3,
+   "cooling_sufficient": true,
+   "efficiency_basis": "passport",
+   "pad_area_m2": 54.0,
+   "pad_efficiency": 0.8574,
+   "pad_pressure_drop_pa": 31.7,
+   "pad_v_max_ms": 2.5,
+   "pad_v_min_ms": 0.6,
+   "recommended_pad_area_m2": 46.82,
+   "status_code": "cooling_marginal",
+   "status_level": "warn",
+   "t_dew_c": 18.5,
+   "t_fan_end_c": 24.7,
+   "t_pad_out_c": 24.7,
+   "t_wb_c": 23.2,
+   "temp_margin_c": 1.3,
+   "velocity_ok": true,
+   "velocity_status": "ok",
+   "water_flow_lpm": 22.6,
+   "water_per_hour_l": 1353.0,
+   "water_regime": "condensation_risk",
+   "water_supply_t_c": 12.0
+  },
+  "fanflow": [
+   [
+    40000,
+    false
+   ],
+   [
+    38400.0,
+    false
+   ],
+   [
+    26800.0,
+    false
+   ],
+   [
+    7600.0,
+    true
+   ]
+  ],
+  "fans": [
+   17,
+   29901.115262311447,
+   50.30901480527672,
+   false,
+   {
+    "basis": "estimated",
+    "inlet": 4.945473465140477,
+    "length_loss": 0.0,
+    "pad": 40.959999999999994,
+    "section": 3.1831098993902986,
+    "total": 49.08858336453077
+   }
+  ],
+  "layer_err": [
+   [
+    "CalcError",
+    "validation_failed"
+   ],
+   [
+    "CalcError",
+    "validation_failed"
+   ],
+   [
+    "CalcError",
+    "material_not_found"
+   ]
+  ],
+  "psy": [
+   22.0124972557973,
+   -5.703994443386975,
+   12.006807823728431,
+   1.1755629302176087
+  ]
+ }
+}
