@@ -77,7 +77,7 @@ Requires Python 3.10+. No database, no external services needed for core functio
 ### Tests
 
 ```bash
-pip install pytest httpx
+pip install -r requirements-dev.txt
 python -m pytest          # from the repository root
 ```
 
@@ -93,6 +93,13 @@ Tests never touch `backend/data/`: settings go to a temporary file via `PIG_SETT
 | `TRUSTED_PROXY_HOPS` | Feedback allows 5 messages per 10 minutes per client. Number of `X-Forwarded-For` entries your own proxies append (`1` on Render — set in `render.yaml`). `0` (default) ignores the header: without a proxy the client writes it |
 
 References used by the calculator: [`docs/sources.md`](docs/sources.md).
+
+### API v1
+
+Public engineering API under `/api/v1` — contract `docs/api/v1/openapi.yaml`, guide `docs/api/v1/README.md`:
+`POST /api/v1/ventilation-requirements` (one group now) and `POST /api/v1/ventilation-designs` (a growing cycle in a
+house with equipment sizing), plus catalogs and design climate. RFC 7807 errors, `request_id` in every response,
+`X-API-Key` keys from `API_KEYS` with per-key rate limits. **Set `API_KEYS` on any public deployment.**
 
 ### Heat production endpoint
 

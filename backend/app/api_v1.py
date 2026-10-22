@@ -21,7 +21,7 @@ import time
 import uuid
 from contextvars import ContextVar
 from logging.handlers import RotatingFileHandler
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import FastAPI, Path, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -37,7 +37,12 @@ from .core import sow_climate
 from .core.build_info import APP_VERSION, build_info
 from .core.errors import CalcError
 from .core.paths import PROJECT_ROOT, data_path
-from .core.pig_heat import MethodNotApplicable
+from .core import pig_design
+from .core import pig_requirement
+from .core.max_ventilation import DEFAULT_RISE_C
+from .core.min_ventilation import DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM
+from .core.pig_heat import DEFAULT_FEED_LEVEL, MethodNotApplicable
+from .core.tunnel_design import Pads
 
 API_VERSION = "1.0.0"
 ERRORS_DOC = "https://github.com/MikeVances/PigMaxApp/blob/main/docs/api/v1/errors.md"
@@ -406,3 +411,253 @@ def contract(request: Request) -> Response:
         # попадает в журнал, и владелец площадки видит, что контракт не выложен
         return _problem(request, 404, "contract_not_found", "API contract file is not deployed")
     return PlainTextResponse(text, media_type="application/yaml", headers={"Cache-Control": "no-cache"})
+
+
+# ─── Сценарии ─────────────────────────────────────────────────────────────────
+
+Group = Literal["growing", "boar", "dry_sow", "gestating_sow", "lactating_sow"]
+HeatMethod = Literal["cigr2002", "brown_brandl_2004", "rd_apk_2012", "stinn_xin_2014"]
+FeedLevel = Literal["S", "NL700", "NL750", "NL800", "DK700", "DK800", "DK900"]
+FloorFeed = Literal["dry_feed_dry_floor", "dry_feed_average_floor", "wet_feed_wet_floor"]
+Floor = Literal["concrete_slats", "wood", "asphalt", "straw", "wet_concrete"]
+
+
+class ModelIn(_Strict):
+    """Модель расчёта: методика тепла и пределы — всё с умолчаниями по источникам."""
+    method: HeatMethod = "cigr2002"
+    feed_level: FeedLevel = DEFAULT_FEED_LEVEL
+    floor_feed: FloorFeed = "dry_feed_dry_floor"
+    rh_max_pct: Optional[float] = Field(None, gt=30, le=95)
+    co2_limit_ppm: float = Field(DEFAULT_CO2_LIMIT_PPM, ge=1000, le=5000)
+    co2_outdoor_ppm: float = Field(DEFAULT_CO2_OUTDOOR_PPM, ge=300, le=600)
+    norm: Literal["pic", "rd_apk_2012", "genetics", "none"] = "pic"
+    max_norm: Literal["pic", "genetics", "none"] = "pic"
+    rise_c: float = Field(DEFAULT_RISE_C, gt=0, le=15)
+
+
+class HeatersIn(_Strict):
+    power_kw: float = Field(0.0, ge=0, le=10_000)
+    type: Literal["gas_open", "electric"] = "gas_open"
+
+
+class AnimalsNowIn(_Strict):
+    group: Group
+    count: int = Field(..., gt=0, le=100_000)
+    weight_kg: Optional[float] = Field(None, gt=0, le=400)
+    genetics: Optional[str] = Field(None, pattern=PROFILE_ID_PATTERN)
+    day: Optional[float] = Field(None, ge=0, le=250)
+    phase: Optional[Literal["nursery", "finisher"]] = None
+    sow_profile: Optional[str] = Field(None, pattern=PROFILE_ID_PATTERN)
+    pregnancy_day: Optional[float] = Field(None, ge=0, le=120)
+    lactation_day: Optional[float] = Field(None, ge=-7, le=42)
+    litter_mass_kg: Optional[float] = Field(None, ge=0, le=200)
+    milk_kg_day: Optional[float] = Field(None, ge=0, le=20)
+    covered_nest: bool = False
+
+    @model_validator(mode="after")
+    def _check(self):
+        # Существование профилей проверяет маршрут: ссылка на несуществующий
+        # справочный объект — 404, а внутри валидатора она стала бы 422 по полю
+        if self.group == "growing" and self.weight_kg is None and (self.genetics is None or self.day is None):
+            raise ValueError("growing pigs need weight_kg, or genetics with day")
+        if self.group != "growing" and self.weight_kg is None:
+            raise ValueError("weight_kg is required for sows and boars")
+        if self.group == "gestating_sow" and self.pregnancy_day is None:
+            raise ValueError("pregnancy_day is required for gestating_sow")
+        if self.group == "lactating_sow" and self.lactation_day is None:
+            raise ValueError("lactation_day is required for lactating_sow")
+        return self
+
+
+class ConditionsIn(_Strict):
+    t_outside_c: float = Field(..., ge=-50, le=50)
+    rh_outside_pct: float = Field(..., ge=0, le=100)
+    t_inside_c: Optional[float] = Field(None, ge=5, le=40)
+    air_speed_ms: Optional[float] = Field(None, ge=0, le=6)
+
+
+class HouseNowIn(_Strict):
+    length_m: Optional[float] = Field(None, gt=0, le=500)
+    width_m: Optional[float] = Field(None, gt=0, le=100)
+    wall_height_m: Optional[float] = Field(None, gt=0, le=20)
+    ridge_height_m: Optional[float] = Field(None, gt=0, le=30)
+    envelope: Optional[EnvelopeIn] = None
+    floor: Floor = "concrete_slats"
+    altitude_m: float = Field(0.0, ge=-100, le=4000)
+
+    @model_validator(mode="after")
+    def _geometry_for_construction(self):
+        if self.envelope is not None and self.envelope.ua_w_per_k is None and None in (
+                self.length_m, self.width_m, self.wall_height_m):
+            raise ValueError("envelope by construction needs length_m, width_m and wall_height_m")
+        return self
+
+
+class RequirementRequest(_Strict):
+    animals: AnimalsNowIn
+    conditions: ConditionsIn
+    house: HouseNowIn = HouseNowIn()
+    heaters: Optional[HeatersIn] = None
+    creep_heat_w_per_pen: float = Field(0.0, ge=0, le=2000)
+    model: ModelIn = ModelIn()
+
+
+def _ua(house, envelope: Optional[EnvelopeIn]) -> tuple[Optional[float], list[str]]:
+    """UA из запроса: заданный или по конструкции."""
+    if envelope is None:
+        return None, []
+    if envelope.ua_w_per_k is not None:
+        return envelope.ua_w_per_k, []
+    g = construction.HouseGeometry(house.length_m, house.width_m, house.wall_height_m, house.ridge_height_m)
+    e = construction.envelope_ua(g, envelope.walls.to_core(), envelope.roof.to_core(),
+                                 envelope.end_walls.to_core() if envelope.end_walls else None)
+    return e.ua_w_per_k, ["br443_2019_s3", "br443_2019_s4_3"]
+
+
+def _require_profiles(genetics: Optional[str], sow_profile: Optional[str]) -> None:
+    if genetics is not None and genetics not in genetics_mod.PROFILES:
+        raise CalcError("genetics_not_found", id=genetics)
+    if sow_profile is not None and sow_profile not in sow_climate.SOW_PROFILES:
+        raise CalcError("sow_profile_not_found", id=sow_profile)
+
+
+def _sources(ids: list[str]) -> list[dict]:
+    # Тот же справочник, что отдаёт /sources: по id агент получит пересказ и ограничения
+    return [{"id": i, "citation": sources.citation(i)} for i in dict.fromkeys(ids) if sources.get_source(i)]
+
+
+@api.post("/ventilation-requirements", status_code=201)
+def create_ventilation_requirement(req: RequirementRequest, request: Request) -> JSONResponse:
+    """Потребность сейчас: одна группа свиней в текущих условиях."""
+    a, c, h, m = req.animals, req.conditions, req.house, req.model
+    _require_profiles(a.genetics, a.sow_profile)
+    ua, env_sources = _ua(h, h.envelope)
+    try:
+        r = pig_requirement.requirement(pig_requirement.RequirementInput(
+            group=a.group, count=a.count, t_outside_c=c.t_outside_c, rh_outside_pct=c.rh_outside_pct,
+            weight_kg=a.weight_kg, genetics=a.genetics, day=a.day, phase=a.phase, sow_profile=a.sow_profile,
+            pregnancy_day=a.pregnancy_day, lactation_day=a.lactation_day, litter_mass_kg=a.litter_mass_kg,
+            milk_kg_day=a.milk_kg_day, covered_nest=a.covered_nest, t_inside_c=c.t_inside_c,
+            method=m.method, feed_level=m.feed_level, floor_feed=m.floor_feed, rh_max_pct=m.rh_max_pct,
+            co2_limit_ppm=m.co2_limit_ppm, co2_outdoor_ppm=m.co2_outdoor_ppm, norm=m.norm, max_norm=m.max_norm,
+            rise_c=m.rise_c, altitude_m=h.altitude_m, ua_w_per_k=ua,
+            heater_power_kw=req.heaters.power_kw if req.heaters else 0.0,
+            heater_type=req.heaters.type if req.heaters else "gas_open",
+            creep_heat_w_per_pen=req.creep_heat_w_per_pen, floor=h.floor, air_speed_ms=c.air_speed_ms))
+    except MethodNotApplicable:
+        raise
+    except ValueError as e:
+        if isinstance(e, CalcError):
+            raise
+        raise CalcError("invalid_parameters", message=str(e))
+    rid = _rid(request)
+    body: dict[str, Any] = {
+        "request_id": rid, "app_version": _app_version(),
+        "weight_kg": r.weight_kg, "t_inside_c": r.t_inside_c, "setpoints": r.setpoints, "heat": r.heat,
+        "min_ventilation": r.min_ventilation, "max_ventilation": r.max_ventilation,
+        "sources": _sources(r.sources + env_sources), "assumptions": r.assumptions, "warnings": r.warnings,
+    }
+    if r.heating is not None:
+        body["heating"] = r.heating
+    if r.effective_temperature is not None:
+        body["effective_temperature"] = r.effective_temperature
+    _audit({"request_id": rid, "path": request.url.path, "status": 201,
+            "request": req.model_dump(exclude_none=True),
+            "result": {"min_total_m3h": r.min_ventilation["total_m3h"], "basis": r.min_ventilation["basis"],
+                       "t_inside_c": r.t_inside_c}})
+    return JSONResponse(body, status_code=201)
+
+
+class HouseIn(_Strict):
+    length_m: float = Field(..., gt=0, le=500)
+    width_m: float = Field(..., gt=0, le=100)
+    wall_height_m: float = Field(..., gt=0, le=20)
+    ridge_height_m: Optional[float] = Field(None, gt=0, le=30)
+    envelope: EnvelopeIn
+    altitude_m: float = Field(0.0, ge=-100, le=4000)
+
+
+class HerdIn(_Strict):
+    genetics: str = Field(..., pattern=PROFILE_ID_PATTERN)
+    count: int = Field(..., gt=0, le=100_000)
+    start_day: float = Field(..., ge=0, le=250)
+    end_day: float = Field(..., ge=1, le=250)
+    mortality_pct: float = Field(0.0, ge=0, le=50)
+    step_days: int = Field(pig_design.DEFAULT_STEP_DAYS, ge=1, le=60)
+    phase: Optional[Literal["nursery", "finisher"]] = None
+
+    @model_validator(mode="after")
+    def _check(self):
+        if self.end_day <= self.start_day:
+            raise ValueError("end_day must be after start_day")
+        return self
+
+
+class ClimateIn(_Strict):
+    winter_design_c: float = Field(..., ge=-60, le=30)
+    summer_design_db_c: float = Field(..., ge=0, le=55)
+    summer_design_rh_pct: float = Field(..., ge=1, le=100)
+    winter_rh_pct: float = Field(pig_design.DEFAULT_WINTER_RH_PCT, ge=1, le=100)
+
+
+class PadsIn(_Strict):
+    pad_type: Literal["7090", "7060", "5090"] = "7090"
+    thickness_mm: int = 150
+
+
+class FanPointIn(_Strict):
+    pressure_pa: float = Field(..., ge=0, le=500)
+    flow_m3h: float = Field(..., gt=0, le=200_000)
+
+
+class FanCurveIn(_Strict):
+    points: list[FanPointIn] = Field(..., min_length=2, max_length=12)
+
+
+class DesignRequest(_Strict):
+    house: HouseIn
+    herd: HerdIn
+    climate: ClimateIn
+    model: ModelIn = ModelIn()
+    heaters: Optional[HeatersIn] = None
+    pads: Optional[PadsIn] = None
+    fan_curve: Optional[FanCurveIn] = None
+    summer_target_c: float = Field(pig_design.DEFAULT_SUMMER_TARGET_C, ge=15, le=35)
+
+
+@api.post("/ventilation-designs", status_code=201)
+def create_ventilation_design(req: DesignRequest, request: Request) -> JSONResponse:
+    """Проект корпуса для цикла растущих свиней: по дням и подбор оборудования."""
+    h, e, m = req.house, req.house.envelope, req.model
+    _require_profiles(req.herd.genetics, None)
+    ua, _ = (e.ua_w_per_k, None) if e.ua_w_per_k is not None else (None, None)
+    try:
+        d = pig_design.design(pig_design.DesignInput(
+            genetics=req.herd.genetics, count=req.herd.count, start_day=req.herd.start_day,
+            end_day=req.herd.end_day, length_m=h.length_m, width_m=h.width_m, wall_height_m=h.wall_height_m,
+            ridge_height_m=h.ridge_height_m, ua_w_per_k=ua,
+            walls=e.walls.to_core() if e.walls else None, roof=e.roof.to_core() if e.roof else None,
+            end_walls=e.end_walls.to_core() if e.end_walls else None,
+            winter_design_c=req.climate.winter_design_c, summer_design_db_c=req.climate.summer_design_db_c,
+            summer_design_rh_pct=req.climate.summer_design_rh_pct, winter_rh_pct=req.climate.winter_rh_pct,
+            mortality_pct=req.herd.mortality_pct, step_days=req.herd.step_days, phase=req.herd.phase,
+            method=m.method, feed_level=m.feed_level, floor_feed=m.floor_feed, rh_max_pct=m.rh_max_pct,
+            co2_limit_ppm=m.co2_limit_ppm, co2_outdoor_ppm=m.co2_outdoor_ppm, norm=m.norm, max_norm=m.max_norm,
+            rise_c=m.rise_c, altitude_m=h.altitude_m,
+            heater_type=req.heaters.type if req.heaters else "gas_open",
+            pads=Pads(req.pads.pad_type, req.pads.thickness_mm) if req.pads else None,
+            fan_curve=tuple((pt.pressure_pa, pt.flow_m3h) for pt in req.fan_curve.points) if req.fan_curve else None,
+            summer_target_c=req.summer_target_c))
+    except (CalcError, MethodNotApplicable):
+        raise
+    except ValueError as ex:
+        raise CalcError("invalid_parameters", message=str(ex))
+    rid = _rid(request)
+    body = {"request_id": rid, "app_version": _app_version(), "envelope": d.envelope, "days": d.days,
+            "equipment": d.equipment, "sources": _sources(d.sources), "assumptions": d.assumptions,
+            "warnings": d.warnings}
+    _audit({"request_id": rid, "path": request.url.path, "status": 201,
+            "request": req.model_dump(exclude_none=True),
+            "result": {k: d.equipment[k] for k in ("min_ventilation_capacity_m3h", "max_ventilation_capacity_m3h",
+                                                    "heating_capacity_kw")}})
+    return JSONResponse(body, status_code=201)
