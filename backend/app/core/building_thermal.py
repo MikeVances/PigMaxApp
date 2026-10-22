@@ -291,6 +291,7 @@ def calculate_heat_balance(
     animals_sensible_w: float | None = None,   # явное тепло всего поголовья, если считано снаружи
     co2_limit_ppm:    float = 3000.0,
     co2_outdoor_ppm:  float = 400.0,
+    exchange_floor_m3h: float = 0.0,  # утечка при 4 Па: греть не меньше этого воздуха
 ) -> HeatBalance:
     # Source: core/building_thermal.py -> calculate_heat_balance (ADAPT: тепло свиней, p явно)
     """
@@ -321,13 +322,16 @@ def calculate_heat_balance(
                                                    limit_ppm=co2_limit_ppm, outdoor_ppm=co2_outdoor_ppm)
 
     sol = solve_heater_duty(qmin_for_duty, ua_coefficient, t_inside_target, t_outside,
-                            q_animals_w, heater_power_kw * 1000.0, p_pa=p_pa)
+                            q_animals_w, heater_power_kw * 1000.0, exchange_floor_m3h=exchange_floor_m3h,
+                            p_pa=p_pa)
     duty_cycle     = sol.duty_cycle
     dilution_air   = qmin_for_duty(duty_cycle) - q_min_m3h
 
     # Потери через ограждения и с вентиляционным воздухом (вместе с воздухом горелок)
     q_walls_kw = ua_coefficient * dt / 1000.0
-    q_vent_kw  = (ventilation_heat_w(sol.qmin_m3h, t_inside_target, t_outside, p_pa) / 1000.0
+    # Греется больший из двух: минимум с воздухом горелок или утечка через щели —
+    # так же, как в решателе загрузки (иначе потери и потребность разошлись бы)
+    q_vent_kw  = (ventilation_heat_w(max(sol.qmin_m3h, exchange_floor_m3h), t_inside_target, t_outside, p_pa) / 1000.0
                   if dt > 0 else 0.0)
     q_total_loss_kw = q_walls_kw + q_vent_kw
     q_animals_kw = q_animals_w / 1000.0

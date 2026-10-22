@@ -124,3 +124,20 @@
   тест `test_house_parity.py` держит паритет при будущих правках. Проверка от
   обратного: R_se 0.04 → 0.05, одна точка таблицы SANHE и запас горелок 1.5 → 1.4 —
   тест краснеет на каждом.
+
+## Дополнение этапа 8.1 — утечки, конденсат, тест герметичности (2026-10-22)
+
+| Единица MINMAXapp | Решение |
+|---|---|
+| `leakage_calc.py` целиком | PORT (было SKIP) — тест герметичности `/calc/leakage` |
+| `ventilation_design.py`: `Airtightness`, `AIRTIGHTNESS_CLASS_RELATIVE`, `DEFAULT_AIRTIGHTNESS_CLASS`, `NATURAL_LEAK_PRESSURE_PA`, `leak_at_4pa_m3h`, `coldest_surface`, `condensation`, `airtightness_q4` | PORT → `core/house_checks.py`; мост: заметка — словарь вместо `Note` |
+| `building_thermal.calculate_heat_balance` | ADAPT: `+ exchange_floor_m3h` (утечка при 4 Па) — передаётся решателю; потери с воздухом от max(минимум, утечка). По умолчанию 0 — поведение исходника |
+
+- **Паритет**: `probe_leakage.py`. 20 групп совпали с оригиналом, включая обе ветки
+  конденсата, ошибку близких точек и решатель с полом обмена. Эталон:
+  `minmax_leakage_parity_59390c7.json`.
+- **Подключено**:
+  - «сейчас» — при заданных размерах корпуса;
+  - «проект» — всегда, без данных класс `moderate`;
+  - коды `leakage_exceeds_min_vent`, `condensation_risk`, `airtightness_class_assumed`;
+  - поля `air_exchange_basis` и `heating_air_basis`.

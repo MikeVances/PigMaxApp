@@ -366,6 +366,20 @@ _SOURCES: tuple[Source, ...] = (
         limits="Потери давления по длине корпуса не считаются (0), пока нет замеров — для корпусов "
                "с перегородками станков это недооценка.",
     ),
+    Source(
+        id="uga_leakage", kind="extension",
+        citation="UGA Poultry House Leakage Estimating Spreadsheet 2014; Poultry411 Tightness Calculator",
+        title="Poultry House Leakage Estimating Spreadsheet", publisher="University of Georgia", year=2014,
+        locator=None,
+        applies_to="утечки корпуса и классы герметичности (методика выведена для птичников, физика щелей общая)",
+        statement="Эквивалентная площадь щелей ELA = относительная утечка × площадь пола / 1000; "
+                  "расход через щели Q = ELA·√(2ΔP/ρ).",
+        how_used="Утечка при 4 Па (ветер и тяга) — нижний предел воздухообмена при обогреве: "
+                 "расход = max(Qmin, утечка), утечка к Qmin не прибавляется. Класс переводится в "
+                 "утечку по верхней границе (в запас для обогрева): tight 0.48, moderate 0.65, "
+                 "leaky 1.0, very_leaky 1.2 м² на 1000 м² пола. Без данных — класс moderate (допущение в ответе).",
+        limits="Влияет на обогрев, только когда утечка больше Qmin (`air_exchange_basis` = `leakage`).",
+    ),
 )
 
 

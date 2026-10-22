@@ -46,3 +46,18 @@ def test_parity_covers_every_heater_branch():
     duties = {k: v["duty_cycle"] for k, v in GOLDEN.items() if k.startswith("duty")}
     assert any(0 < d < 1 for d in duties.values()), "бисекция не проверена"
     assert any(d == 1.0 for d in duties.values()) and any(d == 0.0 for d in duties.values())
+
+
+# ─── Тест герметичности, утечка и конденсат (перенос этапа 8) ─────────────────
+
+def test_leakage_and_condensation_match_minmax_original():
+    from backend.app.core import building_thermal, construction, house_checks, leakage_calc
+    from backend.tests.parity.probe_leakage import run as run_leakage
+    golden = json.loads((Path(__file__).parent / "data" / "minmax_leakage_parity_59390c7.json")
+                        .read_text(encoding="utf-8"))["values"]
+    port = json.loads(json.dumps(run_leakage(leakage_calc, house_checks, construction, building_thermal), default=str))
+    diffs = list(_diff(golden, port))
+    assert not diffs, diffs[:10]
+    # Проба доходит до обеих веток конденсата и до ошибки близких точек
+    assert golden["cond_x_-20"] is not None and golden["cond_roof_-20"] is None
+    assert golden["too_close"] == ["CalcError", "leakage_points_too_close"]

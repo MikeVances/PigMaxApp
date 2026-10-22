@@ -1,0 +1,90 @@
+{
+ "_comment": "Значения ОРИГИНАЛА MINMAXapp 59390c7 (leakage_calc, ventilation_design: leak_at_4pa_m3h, coldest_surface, condensation; solve_heater_duty с полом обмена) на входах backend/tests/parity/probe_leakage.py",
+ "values": {
+  "coldest_env": [
+   "end_walls",
+   1.9,
+   0.13
+  ],
+  "coldest_mean": [
+   "envelope_mean",
+   1.2649498046673742,
+   0.13
+  ],
+  "cond_roof_-20": null,
+  "cond_x_-20": [
+   3.1799999999999997,
+   12.4516141865923
+  ],
+  "cond_x_10": null,
+  "duty_floor": {
+   "duty_cycle": 0.6244926536531381,
+   "full_load_need_w": 187347.79609594142,
+   "heat_need_w": 187347.79609594142,
+   "insufficient": false,
+   "qmin_m3h": 8000
+  },
+  "fan_corr_10": 32427.47888516172,
+  "fan_corr_25": 30022.70726592822,
+  "fan_corr_50": 24772.114708602847,
+  "fan_corr_80": 16421.04787311765,
+  "leak_multi": {
+   "ela_m2": 1.3625,
+   "exponent_out_of_range": false,
+   "fan_corrected_m3h": 34916.0,
+   "flow_coefficient": 4543.9,
+   "flow_exponent_n": 0.611,
+   "house_area_m2": 1728,
+   "infiltration_kw_per_10k": 38.3,
+   "leak_at_4pa_m3h": 10593.0,
+   "relative_leakage": 0.7885,
+   "static_pressure_pa": 30,
+   "tightness_class": "leaky"
+  },
+  "leak_single": {
+   "ela_m2": 1.3625,
+   "exponent_out_of_range": false,
+   "fan_corrected_m3h": 34916.0,
+   "flow_coefficient": null,
+   "flow_exponent_n": null,
+   "house_area_m2": 1728,
+   "infiltration_kw_per_10k": null,
+   "leak_at_4pa_m3h": null,
+   "relative_leakage": 0.7885,
+   "static_pressure_pa": 30,
+   "tightness_class": "leaky"
+  },
+  "q4_default": [
+   10510.62975149315,
+   "moderate"
+  ],
+  "q4_leaky": [
+   16170.199617681772,
+   null
+  ],
+  "q4_meas": [
+   5000,
+   null
+  ],
+  "q4_moderate": [
+   10510.62975149315,
+   null
+  ],
+  "q4_rel": [
+   12936.159694145417,
+   null
+  ],
+  "q4_tight": [
+   7761.69581648725,
+   null
+  ],
+  "q4_very_leaky": [
+   19404.239541218125,
+   null
+  ],
+  "too_close": [
+   "CalcError",
+   "leakage_points_too_close"
+  ]
+ }
+}

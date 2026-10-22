@@ -38,6 +38,7 @@ from .core.build_info import APP_VERSION, build_info
 from .core.errors import CalcError
 from .core.paths import PROJECT_ROOT, data_path
 from .core import pig_design
+from .core.house_checks import Airtightness
 from .core import pig_requirement
 from .core.max_ventilation import DEFAULT_RISE_C
 from .core.min_ventilation import DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM
@@ -253,6 +254,25 @@ class EnvelopeIn(_Strict):
         if self.ua_w_per_k is None and (self.walls is None or self.roof is None):
             raise ValueError("ua_w_per_k or both walls and roof are required")
         return self
+
+
+class AirtightnessIn(_Strict):
+    # Source: api_v1.py -> AirtightnessIn
+    # «class» — ключевое слово Python: поле называется иначе, в JSON — class
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    tightness_class: Optional[Literal["tight", "moderate", "leaky", "very_leaky"]] = Field(None, alias="class")
+    relative_leakage: Optional[float] = Field(None, gt=0, le=5)
+    leak_at_4pa_m3h: Optional[float] = Field(None, gt=0)
+
+    @model_validator(mode="after")
+    def _one_of(self):
+        given = [v for v in (self.tightness_class, self.relative_leakage, self.leak_at_4pa_m3h) if v is not None]
+        if len(given) != 1:
+            raise ValueError("exactly one of class, relative_leakage, leak_at_4pa_m3h is required")
+        return self
+
+    def to_core(self) -> Airtightness:
+        return Airtightness(self.tightness_class, self.relative_leakage, self.leak_at_4pa_m3h)
 
 
 def _app_version() -> str:
@@ -482,6 +502,7 @@ class HouseNowIn(_Strict):
     wall_height_m: Optional[float] = Field(None, gt=0, le=20)
     ridge_height_m: Optional[float] = Field(None, gt=0, le=30)
     envelope: Optional[EnvelopeIn] = None
+    airtightness: Optional[AirtightnessIn] = None
     floor: Floor = "concrete_slats"
     altitude_m: float = Field(0.0, ge=-100, le=4000)
 
@@ -502,16 +523,21 @@ class RequirementRequest(_Strict):
     model: ModelIn = ModelIn()
 
 
-def _ua(house, envelope: Optional[EnvelopeIn]) -> tuple[Optional[float], list[str]]:
-    """UA из запроса: заданный или по конструкции."""
+def _geometry(house) -> Optional[construction.HouseGeometry]:
+    if None in (house.length_m, house.width_m, house.wall_height_m):
+        return None
+    return construction.HouseGeometry(house.length_m, house.width_m, house.wall_height_m, house.ridge_height_m)
+
+
+def _ua(house, envelope: Optional[EnvelopeIn]) -> tuple[Optional[float], Optional[construction.EnvelopeUA], list[str]]:
+    """UA из запроса: заданный или по конструкции (с самой конструкцией — для конденсата)."""
     if envelope is None:
-        return None, []
+        return None, None, []
     if envelope.ua_w_per_k is not None:
-        return envelope.ua_w_per_k, []
-    g = construction.HouseGeometry(house.length_m, house.width_m, house.wall_height_m, house.ridge_height_m)
-    e = construction.envelope_ua(g, envelope.walls.to_core(), envelope.roof.to_core(),
+        return envelope.ua_w_per_k, None, []
+    e = construction.envelope_ua(_geometry(house), envelope.walls.to_core(), envelope.roof.to_core(),
                                  envelope.end_walls.to_core() if envelope.end_walls else None)
-    return e.ua_w_per_k, ["br443_2019_s3", "br443_2019_s4_3"]
+    return e.ua_w_per_k, e, ["br443_2019_s3", "br443_2019_s4_3"]
 
 
 def _require_profiles(genetics: Optional[str], sow_profile: Optional[str]) -> None:
@@ -531,7 +557,7 @@ def create_ventilation_requirement(req: RequirementRequest, request: Request) ->
     """Потребность сейчас: одна группа свиней в текущих условиях."""
     a, c, h, m = req.animals, req.conditions, req.house, req.model
     _require_profiles(a.genetics, a.sow_profile)
-    ua, env_sources = _ua(h, h.envelope)
+    ua, env_obj, env_sources = _ua(h, h.envelope)
     try:
         r = pig_requirement.requirement(pig_requirement.RequirementInput(
             group=a.group, count=a.count, t_outside_c=c.t_outside_c, rh_outside_pct=c.rh_outside_pct,
@@ -543,7 +569,9 @@ def create_ventilation_requirement(req: RequirementRequest, request: Request) ->
             rise_c=m.rise_c, altitude_m=h.altitude_m, ua_w_per_k=ua,
             heater_power_kw=req.heaters.power_kw if req.heaters else 0.0,
             heater_type=req.heaters.type if req.heaters else "gas_open",
-            creep_heat_w_per_pen=req.creep_heat_w_per_pen, floor=h.floor, air_speed_ms=c.air_speed_ms))
+            creep_heat_w_per_pen=req.creep_heat_w_per_pen, floor=h.floor, air_speed_ms=c.air_speed_ms,
+            geometry=_geometry(h), envelope=env_obj,
+            airtightness=h.airtightness.to_core() if h.airtightness else None))
     except MethodNotApplicable:
         raise
     except ValueError as e:
@@ -574,6 +602,7 @@ class HouseIn(_Strict):
     wall_height_m: float = Field(..., gt=0, le=20)
     ridge_height_m: Optional[float] = Field(None, gt=0, le=30)
     envelope: EnvelopeIn
+    airtightness: Optional[AirtightnessIn] = None
     altitude_m: float = Field(0.0, ge=-100, le=4000)
 
 
@@ -647,7 +676,8 @@ def create_ventilation_design(req: DesignRequest, request: Request) -> JSONRespo
             heater_type=req.heaters.type if req.heaters else "gas_open",
             pads=Pads(req.pads.pad_type, req.pads.thickness_mm) if req.pads else None,
             fan_curve=tuple((pt.pressure_pa, pt.flow_m3h) for pt in req.fan_curve.points) if req.fan_curve else None,
-            summer_target_c=req.summer_target_c))
+            summer_target_c=req.summer_target_c,
+            airtightness=h.airtightness.to_core() if h.airtightness else None))
     except (CalcError, MethodNotApplicable):
         raise
     except ValueError as ex:

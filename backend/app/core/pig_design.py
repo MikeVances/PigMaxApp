@@ -21,6 +21,7 @@ from . import evap_cooling_calc as E
 from . import genetics as genetics_mod
 from . import tunnel_design as T
 from .building_thermal import calculate_heat_balance
+from .house_checks import Airtightness, airtightness_q4, coldest_surface, condensation
 from .max_ventilation import DEFAULT_RISE_C, max_ventilation
 from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
                               min_ventilation)
@@ -79,6 +80,7 @@ class DesignInput:
     pads: Optional[T.Pads] = None
     fan_curve: Optional[tuple[tuple[float, float], ...]] = None
     summer_target_c: float = DEFAULT_SUMMER_TARGET_C
+    airtightness: Optional[Airtightness] = None
 
 
 @dataclass
@@ -116,16 +118,23 @@ def design(inp: DesignInput) -> Design:
     p_pa = pressure_at_altitude_pa(inp.altitude_m)
 
     # ── Ограждение ────────────────────────────────────────────────────────────
+    g = C.HouseGeometry(inp.length_m, inp.width_m, inp.wall_height_m, inp.ridge_height_m)
+    env_obj = None
     if inp.ua_w_per_k is not None:
         ua, envelope = inp.ua_w_per_k, {"ua_w_per_k": inp.ua_w_per_k, "basis": "given"}
     else:
-        g = C.HouseGeometry(inp.length_m, inp.width_m, inp.wall_height_m, inp.ridge_height_m)
-        e = C.envelope_ua(g, inp.walls, inp.roof, inp.end_walls)
+        e = env_obj = C.envelope_ua(g, inp.walls, inp.roof, inp.end_walls)
         ua = e.ua_w_per_k
         envelope = {"ua_w_per_k": round(ua, 1), "basis": "construction", "mean_u_w_m2k": round(e.mean_u_w_m2k, 3),
                     "areas_m2": {"side_walls": round(e.areas.side_walls_m2, 1),
                                  "end_walls": round(e.areas.end_walls_m2, 1), "roof": round(e.areas.roof_m2, 1)}}
         sources += ["br443_2019_s3", "br443_2019_s4_3"]
+
+    # Утечка при 4 Па — нижний предел воздуха, который греем; без данных — класс moderate
+    q4 = airtightness_q4(inp.length_m * inp.width_m, inp.airtightness, assumptions)
+    sources.append("uga_leakage")
+    surface = coldest_surface(env_obj, ua, g)
+    leak_days, cond_days, worst_cond = [], [], None
 
     mean_h = ((inp.ridge_height_m or inp.wall_height_m) + inp.wall_height_m) / 2.0
     section_m2 = inp.width_m * mean_h
@@ -150,7 +159,14 @@ def design(inp: DesignInput) -> Design:
             ua_coefficient=ua, q_min_m3h=q_min, t_inside_target=t_in, t_outside=inp.winter_design_c,
             num_animals=n, animal_weight_kg=w, heater_power_kw=0.0, heater_type=inp.heater_type, p_pa=p_pa,
             animals_sensible_w=mv.heat.sensible_w * n,
-            co2_limit_ppm=inp.co2_limit_ppm, co2_outdoor_ppm=inp.co2_outdoor_ppm)
+            co2_limit_ppm=inp.co2_limit_ppm, co2_outdoor_ppm=inp.co2_outdoor_ppm, exchange_floor_m3h=q4)
+        if q4 > q_min:
+            leak_days.append(day)
+        cond = condensation(surface, t_in, rh_max, inp.winter_design_c)
+        if cond is not None:
+            cond_days.append(day)
+            if worst_cond is None or cond[1] - cond[0] > worst_cond[1] - worst_cond[0]:
+                worst_cond = cond
         mx = max_ventilation("growing", w, n, inp.summer_design_db_c, rise_c=inp.rise_c, ua_w_per_k=ua,
                              norm=inp.max_norm, genetics=inp.genetics, phase=sp.phase, p_pa=p_pa,
                              method=inp.method, feed_level=inp.feed_level, floor_feed=inp.floor_feed)
@@ -163,6 +179,7 @@ def design(inp: DesignInput) -> Design:
             "min_ventilation_m3h": round(q_min, 0), "min_per_head_m3h": mv.per_head_m3h, "min_basis": mv.basis,
             "humidity_uncontrollable": mv.humidity_uncontrollable,
             "heating_kw": hb.q_heater_required_kw,
+            "heating_air_basis": "leakage" if q4 > q_min else "min_ventilation",
             "summer_ventilation_m3h": mx.total_m3h, "summer_basis": mx.basis,
             "summer_section_speed_ms": round(v, 2),
         })
@@ -174,6 +191,13 @@ def design(inp: DesignInput) -> Design:
         for wn in sp.warnings + mv.warnings + mx.warnings:
             if wn not in warnings:
                 warnings.append(wn)
+
+    if leak_days:
+        warnings.append(_note("leakage_exceeds_min_vent", days=leak_days, leak_4pa_m3h=round(q4)))
+    if cond_days:
+        warnings.append(_note("condensation_risk", element=surface[0], days=cond_days,
+                              surface_c=round(worst_cond[0], 1), dew_point_c=round(worst_cond[1], 1)))
+    envelope["leak_4pa_m3h"] = round(q4)
 
     # ── Оборудование под худший день ──────────────────────────────────────────
     min_fans = max(r["min_ventilation_m3h"] for r in rows)

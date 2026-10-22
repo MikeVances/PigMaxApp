@@ -222,3 +222,25 @@ def calc_effective_temperature(req: EffectiveTempRequest):
     """Эффективная температура у свиней: воздух, скорость (McFarlane), пол (Close)."""
     r = effective_temperature(req.t_air_c, req.air_speed_ms, req.floor, req.setpoint_c)
     return dataclasses.asdict(r)
+
+
+# ─── Тест герметичности ───────────────────────────────────────────────────────
+
+class LeakageRequest(BaseModel):
+    house_length_m: float = Field(..., gt=0, le=500)
+    house_width_m: float = Field(..., gt=0, le=100)
+    fan_capacity_m3h: float = Field(..., gt=0, description="Тестовые вентиляторы при 25 Па")
+    measured_pressure_pa: float = Field(..., gt=0, le=150)
+    extra_points: list[tuple[float, float]] = Field([], max_length=6, description="(расход при 25 Па, давление)")
+
+
+@router.post("/calc/leakage")
+def calc_leakage(req: LeakageRequest):
+    """Тест герметичности UGA: ELA, относительная утечка, класс; с точками — утечка при 4 Па."""
+    from ..core import leakage_calc as L
+    try:
+        r = L.calculate_leakage(L.LeakageInput(req.house_length_m, req.house_width_m, req.fan_capacity_m3h,
+                                               req.measured_pressure_pa, tuple(map(tuple, req.extra_points))))
+    except CalcError as e:
+        _calc_error(e)
+    return {**dataclasses.asdict(r), "sources": ["uga_leakage"]}

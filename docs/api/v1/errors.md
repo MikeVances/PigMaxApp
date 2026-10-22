@@ -16,6 +16,7 @@
 | <a id="invalid_parameters"></a>`invalid_parameters` | 422 | поля по отдельности верны, но вместе считать по ним нельзя (у профиля нет кривой роста, нет нормы на голову и т. п.); причина — `params.message` |
 | <a id="method_not_applicable"></a>`method_not_applicable` | 422 | методика тепла не покрывает группу: `brown_brandl_2004` — только растущие, `stinn_xin_2014` — только свиноматки |
 | <a id="envelope_implausible"></a>`envelope_implausible` | 422 | средний U ограждения вне 0.1–8 Вт/(м²·К) — опечатка в толщине или U |
+| <a id="leakage_points_too_close"></a>`leakage_points_too_close` | 422 | точки теста герметичности при почти равных давлениях — показатель степени не определить |
 | <a id="fan_curve_invalid"></a>`fan_curve_invalid` | 422 | точки вентилятора не «давление растёт — расход падает», или каталог не того класса |
 | <a id="api_key_required"></a>`api_key_required` | 401 | на площадке заданы ключи, а `X-API-Key` нет или он неверный |
 | <a id="rate_limited"></a>`rate_limited` | 429 | превышен лимит ключа в минуту; `Retry-After` — через сколько повторить |
@@ -44,6 +45,8 @@
 | <a id="air_speed_above_rd_apk"></a>`air_speed_above_rd_apk` | нужная летом скорость выше допустимой по РД-АПК табл. 18 (откорм 1.0, доращивание 0.6 м/с) |
 | <a id="tunnel_length_loss_not_included"></a>`tunnel_length_loss_not_included` | давление туннеля без потерь по длине корпуса — источника коэффициента нет, замер их заменяет |
 | <a id="tunnel_pressure_high"></a>`tunnel_pressure_high` | рабочее давление выше 50 Па — осевые вентиляторы теряют расход, перепроверьте каталог и панели |
+| <a id="condensation_risk"></a>`condensation_risk` | самая холодная внутренняя поверхность ограждения холоднее точки росы при пределе RH: капель, мокрые стены; `element`, `surface_c`, `dew_point_c` (у проекта — `days`) |
+| <a id="leakage_exceeds_min_vent"></a>`leakage_exceeds_min_vent` | утечка при 4 Па больше минимума — отопление греет воздух щелей, уплотнение корпуса экономит тепло |
 | <a id="fan_curve_extrapolated"></a>`fan_curve_extrapolated` | рабочая точка за последней точкой каталога вентилятора |
 
 ## Допущения (`assumptions`)
@@ -85,6 +88,7 @@
 | <a id="profile_has_no_ventilation_norm"></a>`profile_has_no_ventilation_norm` | у профиля нет нормы вентиляции на голову |
 | <a id="gas_heater_treated_as_open_flame"></a>`gas_heater_treated_as_open_flame` | газовый отопитель считается открытым пламенем (CO₂ и пар в помещение) |
 | <a id="max_equals_min_in_heating"></a>`max_equals_min_in_heating` | наружная с подъёмом холоднее помещения — режим отопления: максимум равен минимуму, сверх него воздуха не нужно |
+| <a id="airtightness_class_assumed"></a>`airtightness_class_assumed` | герметичность не задана — класс UGA `moderate` (0.65 м² на 1000 м² пола) |
 | <a id="mortality_linear"></a>`mortality_linear` | падёж цикла распределён по дням линейно |
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
 | <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |

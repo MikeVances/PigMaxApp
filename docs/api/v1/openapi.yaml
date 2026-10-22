@@ -469,6 +469,26 @@ components:
             roof: { $ref: "#/components/schemas/Surface" }
             end_walls: { $ref: "#/components/schemas/Surface" }
 
+    Airtightness:
+      type: object
+      description: |
+        Герметичность корпуса — одно из трёх: класс UGA, относительная утечка (м² щелей
+        на 1000 м² пола) или утечка при 4 Па из теста (`/calc/leakage`). Не задана —
+        в проекте класс `moderate` (допущение), в «сейчас» — то же, если даны размеры.
+      oneOf:
+        - type: object
+          required: [class]
+          properties:
+            class: { type: string, enum: [tight, moderate, leaky, very_leaky] }
+        - type: object
+          required: [relative_leakage]
+          properties:
+            relative_leakage: { type: number, exclusiveMinimum: 0, maximum: 5 }
+        - type: object
+          required: [leak_at_4pa_m3h]
+          properties:
+            leak_at_4pa_m3h: { type: number, exclusiveMinimum: 0 }
+
     Model:
       type: object
       description: Модель расчёта — методика тепла, пределы и нормы; всё с умолчаниями по источникам
@@ -526,6 +546,7 @@ components:
             wall_height_m: { type: number, exclusiveMinimum: 0, maximum: 20 }
             ridge_height_m: { type: number, exclusiveMinimum: 0, maximum: 30 }
             envelope: { $ref: "#/components/schemas/Envelope" }
+            airtightness: { $ref: "#/components/schemas/Airtightness" }
             floor: { type: string, enum: [concrete_slats, wood, asphalt, straw, wet_concrete], default: concrete_slats }
             altitude_m: { type: number, minimum: -100, maximum: 4000, default: 0 }
         heaters: { $ref: "#/components/schemas/Heaters" }
@@ -584,7 +605,7 @@ components:
 
     Heating:
       type: object
-      required: [heater_required_kw, walls_kw, ventilation_kw, animals_kw, creep_heat_kw, status_code, dilution_air_m3h]
+      required: [heater_required_kw, walls_kw, ventilation_kw, animals_kw, creep_heat_kw, status_code, dilution_air_m3h, air_exchange_basis]
       properties:
         heater_required_kw: { type: number }
         walls_kw: { type: number }
@@ -593,6 +614,8 @@ components:
         creep_heat_kw: { type: number }
         status_code: { type: string, enum: [no_heating_needed, animals_sufficient, insufficient, near_limit, moderate, light] }
         dilution_air_m3h: { type: number }
+        air_exchange_basis: { type: string, enum: [min_ventilation, leakage], description: "Чем определён нагреваемый воздух: минимумом или утечкой через щели" }
+        leak_4pa_m3h: { type: number, description: "Утечка при 4 Па (ветер, тяга) — есть, если даны размеры корпуса" }
         duty_cycle: { type: number }
         heater_covers_need: { type: boolean }
         heater_deficit_kw: { type: number }
@@ -638,6 +661,7 @@ components:
             wall_height_m: { type: number, exclusiveMinimum: 0, maximum: 20 }
             ridge_height_m: { type: number, exclusiveMinimum: 0, maximum: 30 }
             envelope: { $ref: "#/components/schemas/Envelope" }
+            airtightness: { $ref: "#/components/schemas/Airtightness" }
             altitude_m: { type: number, minimum: -100, maximum: 4000, default: 0 }
         herd:
           type: object
@@ -686,7 +710,7 @@ components:
     DesignDay:
       type: object
       required: [day, weight_kg, pigs, phase, setpoint_c, design_room_temp_c, min_ventilation_m3h, min_per_head_m3h, min_basis,
-                 humidity_uncontrollable, heating_kw, summer_ventilation_m3h, summer_basis, summer_section_speed_ms]
+                 humidity_uncontrollable, heating_kw, heating_air_basis, summer_ventilation_m3h, summer_basis, summer_section_speed_ms]
       properties:
         day: { type: number }
         weight_kg: { type: number }
@@ -699,6 +723,7 @@ components:
         min_basis: { type: string, enum: [co2, moisture, norm] }
         humidity_uncontrollable: { type: boolean }
         heating_kw: { type: number, description: "При расчётной зиме" }
+        heating_air_basis: { type: string, enum: [min_ventilation, leakage] }
         summer_ventilation_m3h: { type: number, description: "При расчётном лете" }
         summer_basis: { type: string, enum: [heat, norm] }
         summer_section_speed_ms: { type: number }
@@ -745,9 +770,10 @@ components:
         app_version: { type: string }
         envelope:
           type: object
-          required: [ua_w_per_k, basis]
+          required: [ua_w_per_k, basis, leak_4pa_m3h]
           properties:
             ua_w_per_k: { type: number }
+            leak_4pa_m3h: { type: number, description: "Утечка при 4 Па — нижний предел нагреваемого воздуха" }
             basis: { type: string, enum: [given, construction] }
             mean_u_w_m2k: { type: number }
             areas_m2:

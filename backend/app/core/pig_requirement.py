@@ -16,6 +16,8 @@ from typing import Optional
 from . import genetics as genetics_mod
 from . import sow_climate
 from .building_thermal import calculate_heat_balance
+from .construction import EnvelopeUA, HouseGeometry
+from .house_checks import Airtightness, airtightness_q4, coldest_surface, condensation
 from .max_ventilation import DEFAULT_RISE_C, max_ventilation
 from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
                               min_ventilation)
@@ -60,6 +62,9 @@ class RequirementInput:
     creep_heat_w_per_pen: float = 0.0
     floor: str = "concrete_slats"
     air_speed_ms: Optional[float] = None
+    geometry: Optional[HouseGeometry] = None     # размеры: утечки и конденсат по среднему U
+    envelope: Optional[EnvelopeUA] = None        # конструкция: самая холодная поверхность
+    airtightness: Optional[Airtightness] = None
 
 
 @dataclass
@@ -166,6 +171,23 @@ def requirement(inp: RequirementInput) -> Requirement:
         assumptions.append(_note("max_equals_min_in_heating", t_outside_c=inp.t_outside_c, t_inside_c=round(t_in, 1)))
 
     # ── Отопление ─────────────────────────────────────────────────────────────
+    # Утечка при 4 Па — нужна площадь пола; без размеров корпуса её не оценить
+    q4 = 0.0
+    if inp.geometry is not None:
+        q4 = airtightness_q4(inp.geometry.length_m * inp.geometry.width_m, inp.airtightness, assumptions)
+        sources.append("uga_leakage")
+        if q4 > mv.per_head_m3h * inp.count and inp.t_outside_c < t_in:
+            warnings.append(_note("leakage_exceeds_min_vent", leak_4pa_m3h=round(q4),
+                                  min_ventilation_m3h=round(mv.per_head_m3h * inp.count)))
+
+    # Конденсат: самая холодная внутренняя поверхность против точки росы при пределе RH
+    if inp.ua_w_per_k is not None and (inp.envelope is not None or inp.geometry is not None):
+        surface = coldest_surface(inp.envelope, inp.ua_w_per_k, inp.geometry)
+        cond = condensation(surface, t_in, rh_max, inp.t_outside_c)
+        if cond is not None:
+            warnings.append(_note("condensation_risk", element=surface[0], surface_c=round(cond[0], 1),
+                                  dew_point_c=round(cond[1], 1)))
+
     heating = None
     if inp.ua_w_per_k is not None or inp.heater_power_kw > 0:
         if inp.ua_w_per_k is None:
@@ -176,11 +198,15 @@ def requirement(inp: RequirementInput) -> Requirement:
             t_outside=inp.t_outside_c, num_animals=inp.count, animal_weight_kg=weight,
             heater_power_kw=inp.heater_power_kw, heater_type=inp.heater_type, p_pa=p_pa,
             animals_sensible_w=heat.sensible_w * inp.count + creep_w,
-            co2_limit_ppm=inp.co2_limit_ppm, co2_outdoor_ppm=inp.co2_outdoor_ppm)
+            co2_limit_ppm=inp.co2_limit_ppm, co2_outdoor_ppm=inp.co2_outdoor_ppm, exchange_floor_m3h=q4)
         heating = {"heater_required_kw": hb.q_heater_required_kw, "walls_kw": hb.q_walls_kw,
                    "ventilation_kw": hb.q_ventilation_kw, "animals_kw": hb.q_animals_kw,
                    "creep_heat_kw": round(creep_w / 1000, 2), "status_code": hb.status_code,
-                   "dilution_air_m3h": hb.dilution_air_m3h}
+                   "dilution_air_m3h": hb.dilution_air_m3h,
+                   # Чем определён воздух, который греем: минимумом или щелями
+                   "air_exchange_basis": "leakage" if q4 > mv.per_head_m3h * inp.count + hb.dilution_air_m3h else "min_ventilation"}
+        if inp.geometry is not None:
+            heating["leak_4pa_m3h"] = round(q4)
         if inp.heater_power_kw > 0:
             heating.update(duty_cycle=hb.duty_cycle, heater_covers_need=hb.heater_covers_need,
                            heater_deficit_kw=hb.heater_deficit_kw)
