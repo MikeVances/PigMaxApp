@@ -6,7 +6,9 @@ import json
 import logging
 import os
 from pathlib import Path
-from pydantic import BaseModel
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,28 @@ class HeaterConfig(BaseModel):
     heater_type:    str   = "gas"   # gas | electric
 
 
+class FarmConfig(BaseModel):
+    """
+    Настройки хозяйства — по образцу AppConfig MINMAXapp. Только заполняют формы
+    интерфейса: API v1 без состояния и от них не зависит (иначе один и тот же
+    запрос давал бы разный ответ на разных площадках).
+    """
+    # Высота фермы: на 1000 м воздух на 11 % реже — меньше массы в том же расходе
+    altitude_m:       float = Field(0.0, ge=-100, le=4000)
+    mortality_pct:    float = Field(3.0, ge=0, le=50)
+    # Профиль, выбранный в формах по умолчанию; может быть и своим (genetics_store)
+    default_genetics: str = Field("pic_2019", pattern=r"^[a-z0-9][a-z0-9_]{0,63}$")
+    # Координаты и расчётный климат — пишет POST /settings/design-climate
+    latitude:             Optional[float] = Field(None, ge=-90, le=90)
+    longitude:            Optional[float] = Field(None, ge=-180, le=180)
+    winter_design_c:      Optional[float] = Field(None, ge=-60, le=30)
+    summer_design_db_c:   Optional[float] = Field(None, ge=0, le=55)
+    summer_design_rh_pct: Optional[float] = Field(None, ge=1, le=100)
+    summer_mcwb_c:        Optional[float] = Field(None, ge=-20, le=40)
+    evap_wb_c:            Optional[float] = Field(None, ge=-20, le=40)
+    climate_source:       Optional[str]   = Field(None, max_length=120)
+
+
 class PigSettings(BaseModel):
     building:       BuildingConfig = BuildingConfig()
     heater:         HeaterConfig   = HeaterConfig()
@@ -45,6 +69,7 @@ class PigSettings(BaseModel):
     # Калибровка по кривой остывания (core/cooling_fit): отметки хранятся, чтобы
     # пересчитать UA, если поменяются размеры корпуса
     calibration:    dict | None    = None
+    farm:           FarmConfig     = FarmConfig()
 
 
 def load_settings() -> PigSettings:

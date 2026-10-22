@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field
 from ..core.building_thermal import BuildingDimensions, CalibrationTest, calibration_problem
 from ..core.cooling_fit import fit_cooling_curve
 from ..core.errors import CalcError
-from ..core.pig_settings import PigSettings, BuildingConfig, HeaterConfig, load_settings, save_settings
+from ..core import design_climate
+from ..core import genetics as genetics_mod
+from ..core.pig_settings import PigSettings, BuildingConfig, FarmConfig, HeaterConfig, load_settings, save_settings
 from ..write_access import require_write_token
 
 router = APIRouter()
@@ -32,6 +34,7 @@ class SettingsPayload(BaseModel):
     heater:         HeaterConfig   | None = None
     ua_coefficient: float | None         = None
     calibration:    CalibrationIn  | None = None
+    farm:           FarmConfig     | None = None
 
 
 class CalibrateRequest(CalibrationIn):
@@ -101,5 +104,43 @@ def put_settings(payload: SettingsPayload):
             raise HTTPException(status_code=422, detail={"code": "calibration_ua_unresolved", "params": {}})
         s.ua_coefficient = round(fit.ua_w_per_k, 1)
         s.calibration = asdict(cal)
+    if payload.farm is not None:
+        # Несуществующий профиль по умолчанию сохранился бы с 200, а потом формы
+        # открывались бы с пустым выбором — проверяем сразу (как MINMAXapp app-config)
+        if genetics_mod.find(payload.farm.default_genetics) is None:
+            raise HTTPException(status_code=422, detail={"code": "genetics_not_found",
+                                                         "params": {"id": payload.farm.default_genetics}})
+        s.farm = payload.farm
+    save_settings(s)
+    return get_settings()
+
+
+class DesignClimateRequest(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
+
+@router.post("/settings/design-climate", dependencies=[Depends(require_write_token)])
+def put_design_climate(req: DesignClimateRequest):
+    # Source: MINMAXapp routers/settings.py -> put_design_climate (ADAPT: поля FarmConfig)
+    """
+    Расчётный климат по координатам фермы: 10 лет ERA5 (Open-Meteo) → 99.6 % / 0.4 %
+    по ASHRAE, гл. 14; сохраняется в настройках хозяйства. Под токеном записи: каждый
+    вызов — 10 лет часовых данных из чужой квоты, перебором её не исчерпать.
+    """
+    try:
+        temps, rhs, elevation = design_climate.fetch_hourly(req.latitude, req.longitude)
+        dc = design_climate.design_conditions(temps, rhs, elevation)
+    except CalcError as e:
+        raise HTTPException(status_code=502, detail=e.detail)
+    s = load_settings()
+    f = s.farm
+    f.latitude, f.longitude = req.latitude, req.longitude
+    f.winter_design_c, f.summer_design_db_c = dc.heating_996_c, dc.cooling_04_db_c
+    f.summer_design_rh_pct, f.summer_mcwb_c = dc.cooling_04_rh_pct, dc.cooling_04_mcwb_c
+    f.evap_wb_c, f.climate_source = dc.evap_04_wb_c, dc.source
+    # Высоту фермы не трогаем, если её уже задали; иначе — высота точки реанализа
+    if not f.altitude_m:
+        f.altitude_m = float(dc.elevation_m)
     save_settings(s)
     return get_settings()

@@ -130,3 +130,14 @@
 | <a id="profile_point_out_of_range"></a>`profile_point_out_of_range` | 422 | точка вне физических пределов (`phase`, `curve`, `point`) |
 | <a id="profile_curve_not_increasing"></a>`profile_curve_not_increasing` | 422 | вес в кривой не растёт строго (`phase`, `curve`) |
 | <a id="profile_growth_not_increasing"></a>`profile_growth_not_increasing` | 422 | в кривой роста не растёт строго день или вес (`what`) |
+| <a id="profile_is_default"></a>`profile_is_default` | 409 | профиль выбран по умолчанию в настройках хозяйства — сначала выберите другой |
+
+## Настройки хозяйства и резервная копия
+
+Маршруты интерфейса `PUT /settings`, `POST /settings/design-climate`, `GET`/`POST /backup`
+(запись — под `WRITE_TOKEN`). Коды — в `detail`; `genetics_not_found` (422) — профиль по
+умолчанию не существует, `climate_unavailable` (502) — как у API v1.
+
+| Код | Статус | Смысл |
+|---|---|---|
+| <a id="backup_invalid"></a>`backup_invalid` | 422 | файл копии не проходит модели сохранения (`field`) — ничего не записано |

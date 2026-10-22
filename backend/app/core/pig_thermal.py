@@ -34,6 +34,7 @@ def analyze_heat_balance(
     feed_level: str = DEFAULT_FEED_LEVEL,
     floor_feed: str = "dry_feed_dry_floor",
     heater_type: str = "gas",
+    p_pa: float | None = None,
 ) -> dict:
     """
     Тепловой баланс свинарника.
@@ -59,6 +60,8 @@ def analyze_heat_balance(
         heater_power_kw=total_heater_power_kw or 0.0,
         heater_type=HEATER_TYPE_MAP.get(heater_type, "gas_open"),
         animals_sensible_w=heat.sensible_w * num_pigs,
+        # Давление площадки: на высоте в том же расходе меньше массы воздуха
+        **({"p_pa": p_pa} if p_pa is not None else {}),
     )
 
     assumptions = list(heat.assumptions)

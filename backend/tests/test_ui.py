@@ -121,3 +121,22 @@ def test_no_duplicate_keys(lang):
     text = (STATIC / "i18n" / f"{lang}.js").read_text(encoding="utf-8")
     keys = re.findall(r"^\s+([a-z_0-9]+)\s*:", text, re.M)
     assert len(keys) == len(set(keys)), sorted({k for k in keys if keys.count(k) > 1})
+
+
+def test_heat_balance_follows_ventilation_genetics(client):
+    # Главная: отопление при той же температуре помещения, что и вентиляция по
+    # выбранной генетике — раньше баланс брал уставку PIC (16.4 против 18.5 °C)
+    v = client.post("/calc/ventilation", json={"weight_kg": 66.22, "num_pigs": 100, "t_outside_c": -5,
+                                               "genetics": "klimaatplatform_2021", "phase": "finisher"}).json()
+    hb = {"weight_kg": 66.22, "num_pigs": 100, "t_outside_c": -5, "q_min_m3h": v["min_vent_total_m3h"],
+          "ua_coefficient": 500, "t_inside_c": v["setpoint_c"]}
+    sea = client.post("/calc/heat-balance", json=hb).json()
+    assert sea["setpoint_used_c"] == v["setpoint_c"] == 18.5
+    # На высоте тот же объём воздуха уносит меньше тепла — давление площадки дошло
+    high = client.post("/calc/heat-balance", json={**hb, "altitude_m": 2000}).json()
+    assert high["q_ventilation_kw"] < 0.85 * sea["q_ventilation_kw"]
+
+
+def test_index_sends_inside_temperature_to_heat_balance():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert "t_inside_c:         d.setpoint_c" in html

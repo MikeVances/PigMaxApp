@@ -13,6 +13,7 @@ from ..core.min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_P
 from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, MethodNotApplicable, pig_heat
 from ..core.pig_profile import TABLE_MAX_KG, TABLE_MIN_KG, interpolate_by_weight
 from ..core.pig_thermal  import analyze_heat_balance
+from ..core.psychro import pressure_at_altitude_pa
 from ..core.pig_stocking import stocking_check
 
 router = APIRouter()
@@ -105,6 +106,11 @@ class HeatRequest(BaseModel):
     heat_method:         Method    = "cigr2002"
     feed_level:          FeedLevel = DEFAULT_FEED_LEVEL
     floor_feed:          FloorFeed = "dry_feed_dry_floor"
+    # Температура помещения из расчёта вентиляции по выбранной генетике. Без неё —
+    # уставка PIC по весу: иначе вентиляция и отопление на одном экране шли бы при
+    # разных температурах (голландский профиль, 66 кг: 18.5 против 16.4 °C)
+    t_inside_c:          float | None = Field(None, ge=5, le=40)
+    altitude_m:          float = Field(0.0, ge=-100, le=4000)
 
 
 class HeatProductionRequest(BaseModel):
@@ -220,10 +226,10 @@ def calc_ventilation(req: VentRequest):
 @router.post("/calc/heat-balance")
 def calc_heat_balance(req: HeatRequest):
     """Full heat balance for pig house heating analysis."""
-    sp = interpolate_by_weight(req.weight_kg)
+    t_in = req.t_inside_c if req.t_inside_c is not None else interpolate_by_weight(req.weight_kg).target_temp_c
 
     result = analyze_heat_balance(
-        t_inside_target     = sp.target_temp_c,
+        t_inside_target     = t_in,
         t_outside           = req.t_outside_c,
         q_min_m3h           = req.q_min_m3h,
         num_pigs            = req.num_pigs,
@@ -235,10 +241,11 @@ def calc_heat_balance(req: HeatRequest):
         feed_level          = req.feed_level,
         floor_feed          = req.floor_feed,
         heater_type         = req.heater_type,
+        p_pa                = pressure_at_altitude_pa(req.altitude_m),
     )
 
-    result["target_temp_c"] = sp.target_temp_c
-    result["setpoint_used_c"] = sp.target_temp_c
+    result["target_temp_c"] = t_in
+    result["setpoint_used_c"] = t_in
     result["warnings"] = weight_warnings(req.weight_kg)
     return result
 

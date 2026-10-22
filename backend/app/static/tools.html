@@ -31,6 +31,7 @@
       <button class="tab" data-tab="evap" data-i18n="tl_tab_evap">Pad cooling</button>
       <button class="tab" data-tab="tunnel" data-i18n="tl_tab_tunnel">Tunnel fans</button>
       <button class="tab" data-tab="effective" data-i18n="tl_tab_effective">Effective temperature</button>
+      <button class="tab" data-tab="farm" data-i18n="tl_tab_farm">Farm &amp; backup</button>
     </div>
 
     <!-- ── envelope ── -->
@@ -187,6 +188,36 @@
         <table class="table-plain"><tbody id="fRows"></tbody></table>
         <ul id="fWarnings" class="warn-list"></ul>
         <ul id="fNotes" class="note-list"></ul>
+      </div>
+    </section>
+
+    <!-- ── Хозяйство и резервная копия ── -->
+    <section id="tool-farm" class="tool" style="display:none;">
+      <div class="card mb">
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="tl_altitude">Altitude, m</span><input id="aAltitude" class="field" type="number" step="any" /></label>
+          <label><span class="muted small" data-i18n="tl_mortality">Mortality per cycle, %</span><input id="aMortality" class="field" type="number" step="any" /></label>
+          <label><span class="muted small" data-i18n="tl_default_genetics">Default genetics</span><select id="aGenetics" class="field"></select></label>
+          <label><span class="muted small" data-i18n="tl_lat">Latitude</span><input id="aLat" class="field" type="number" step="any" /></label>
+          <label><span class="muted small" data-i18n="tl_lon">Longitude</span><input id="aLon" class="field" type="number" step="any" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="aSave" class="btn" data-i18n="tl_btn_save_farm">Save farm settings</button>
+          <button id="aClimate" class="btn btn-secondary" data-i18n="tl_btn_climate">Get design climate (10 years ERA5)</button>
+          <span id="aDone" class="ok-note" style="display:none;"></span>
+        </div>
+        <div id="aError" class="alert-danger mt-12" style="display:none;"></div>
+        <table class="table-plain mt-12"><tbody id="aRows"></tbody></table>
+      </div>
+      <div class="card mb">
+        <h2 data-i18n="tl_backup_title">Backup</h2>
+        <p class="muted small mb-8" data-i18n="tl_backup_hint">House, heaters, UA and calibration, farm settings and your own genetics profiles in one JSON file.</p>
+        <div class="row-actions">
+          <button id="bDownload" class="btn btn-secondary" data-i18n="tl_btn_download">Download backup</button>
+          <label class="btn btn-secondary"><span data-i18n="tl_btn_restore">Restore from file</span><input id="bFile" type="file" accept="application/json,.json" hidden /></label>
+          <span id="bDone" class="ok-note" style="display:none;"></span>
+        </div>
+        <div id="bError" class="alert-danger mt-12" style="display:none;"></div>
       </div>
     </section>
 

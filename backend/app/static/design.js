@@ -21,16 +21,41 @@
   // Проект идёт по кривой роста — в списке только профили, у которых она есть
   // Список очищается перед заполнением: редактор профилей просит перечитать его
   // после записи (событие geneticschange), и без очистки профили задвоились бы
+  // Список и настройки приходят в любом порядке: профиль хозяйства выбирают оба
+  // обработчика, пока пользователь не выбрал сам
+  let farm = null, userPicked = false;
+  function applyFarmGenetics() {
+    if (userPicked || !farm) return;
+    if ([...$('dGenetics').options].some(o => o.value === farm.default_genetics)) $('dGenetics').value = farm.default_genetics;
+  }
+  $('dGenetics').addEventListener('change', () => { userPicked = true; });
+
   function loadGenetics() {
     fetch('./genetics').then(r => r.json()).then(list => {
       const dg = $('dGenetics'), keep = dg.value;
       dg.innerHTML = '';
       list.filter(p => p.has_growth_curve).forEach(p => dg.add(new Option(p.name, p.id)));
       if (keep && list.some(p => p.id === keep && p.has_growth_curve)) dg.value = keep;
+      applyFarmGenetics();
     }).catch(() => {});
   }
   loadGenetics();
   document.addEventListener('geneticschange', loadGenetics);
+
+  // ── Значения по умолчанию из настроек хозяйства (страница инструментов) ──────
+  // Климат подставляется, только если он получен по координатам: иначе остаются
+  // примерные значения формы, и это видно по пустому источнику климата
+  fetch('./settings').then(r => r.json()).then(st => {
+    farm = st.farm;
+    if (!farm) return;
+    $('dMortality').value = farm.mortality_pct;
+    if (farm.winter_design_c !== null) {
+      $('dWinter').value = farm.winter_design_c;
+      $('dSummer').value = farm.summer_design_db_c;
+      $('dSummerRh').value = farm.summer_design_rh_pct;
+    }
+    applyFarmGenetics();
+  }).catch(() => {});
   fetch('./sow-profiles').then(r => r.json()).then(list => {
     list.forEach(p => $('sProfile').add(new Option(p.name, p.id)));
   }).catch(() => {});
@@ -93,6 +118,7 @@
         ridge_height_m: num('dRidge') || null,
         envelope: { walls: { u_w_m2k: num('dUWalls') }, roof: { u_w_m2k: num('dURoof') } },
         airtightness: { class: $('dAirtight').value },
+        altitude_m: farm ? farm.altitude_m : 0,
       },
       herd: {
         genetics: $('dGenetics').value, count: parseInt($('dCount').value, 10),

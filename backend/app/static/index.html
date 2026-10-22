@@ -378,7 +378,8 @@
       const rv = await fetch('./calc/ventilation', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, t_outside_c: tOutside, season,
-                               rh_outside_pct: isNaN(rhOut) ? null : rhOut, genetics }),
+                               rh_outside_pct: isNaN(rhOut) ? null : rhOut, genetics,
+                               altitude_m: currentSettings?.farm?.altitude_m ?? 0 }),
       });
       if (!rv.ok) return;
       const d = await rv.json();
@@ -405,6 +406,9 @@
         building_volume_m3: s ? s.building.volume_m3 : null,
         total_heater_kw:    s ? s.heater.total_power_kw : null,
         heater_type:        s ? s.heater.heater_type : 'gas',
+        // Та же температура помещения, что у вентиляции (по выбранной генетике)
+        t_inside_c:         d.setpoint_c,
+        altitude_m:         s?.farm?.altitude_m ?? 0,
       };
       const rh = await fetch('./calc/heat-balance', {
         method: 'POST', headers: {'Content-Type':'application/json'},
@@ -469,7 +473,11 @@
         o.value = p.id; o.textContent = p.name;
         sel.appendChild(o);
       });
-      sel.value = 'pic_2019';
+      // Профиль по умолчанию — из настроек хозяйства (страница инструментов)
+      fetch('./settings').then(r => r.json()).then(st => {
+        const def = st.farm && st.farm.default_genetics;
+        sel.value = list.some(p => p.id === def) ? def : 'pic_2019';
+      }).catch(() => { sel.value = 'pic_2019'; });
     }).catch(() => {});
 
     // ── Stocking density ─────────────────────────────────────────────────────

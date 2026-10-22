@@ -21,6 +21,7 @@ from ..api_v1 import genetics_body
 from ..core import genetics as genetics_mod
 from ..core import genetics_store
 from ..core.errors import CalcError
+from ..core.pig_settings import load_settings
 from ..write_access import require_write_token
 
 router = APIRouter()
@@ -93,6 +94,13 @@ def put_profile(payload: ProfileIn, profile_id: str = Path(..., pattern=genetics
 
 @router.delete("/genetics/{profile_id}", dependencies=[Depends(require_write_token)])
 def delete_profile(profile_id: str = Path(..., pattern=genetics_store.PROFILE_ID_PATTERN)):
+    # Встроенный не удаляется в любом случае (403) — эта причина первична: её не
+    # снять сменой профиля по умолчанию. Потом — профиль по умолчанию: удалённым он
+    # оставил бы формы с пустым выбором; сначала выбрать другой (как MINMAXapp, 409)
+    if profile_id in genetics_mod.PROFILES:
+        raise HTTPException(status_code=403, detail={"code": "builtin_profile_read_only", "params": {"id": profile_id}})
+    if profile_id == load_settings().farm.default_genetics:
+        raise HTTPException(status_code=409, detail={"code": "profile_is_default", "params": {"id": profile_id}})
     try:
         genetics_store.delete(profile_id)
     except genetics_store.BuiltinProfileReadOnly:

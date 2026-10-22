@@ -79,12 +79,13 @@
   let tokenFallback = '';
   function loadToken() { try { return localStorage.getItem('pigmax_write_token') || tokenFallback; } catch (_) { return tokenFallback; } }
   function saveToken(t) { try { localStorage.setItem('pigmax_write_token', t); } catch (_) {} tokenFallback = t; }
-  async function putSettings(payload) {
+  // Запись под токеном: 401 — на площадке задан WRITE_TOKEN, спрашиваем один раз и повторяем
+  async function writeRequest(method, url, payload) {
     const send = () => {
       const headers = { 'Content-Type': 'application/json' };
       const token = loadToken();
       if (token) headers['X-Write-Token'] = token;
-      return fetch('./settings', { method: 'PUT', headers, body: JSON.stringify(payload) });
+      return fetch(url, { method, headers, body: JSON.stringify(payload) });
     };
     let r = await send();
     if (r.status === 401) {
@@ -95,6 +96,7 @@
     }
     return r;
   }
+  const putSettings = payload => writeRequest('PUT', './settings', payload);
   function done(id, text) {
     $(id).textContent = text;
     $(id).style.display = '';
@@ -267,6 +269,81 @@
     });
   });
 
+  // ── Хозяйство: высота, падёж, генетика по умолчанию, расчётный климат ───────
+  let farm = null;
+  function farmRows() {
+    if (!farm || farm.winter_design_c === null) { $('aRows').innerHTML = ''; return; }
+    rows('a', [
+      ['tl_winter', 'Winter', fmt(farm.winter_design_c)], ['tl_summer_db', 'Summer', fmt(farm.summer_design_db_c)],
+      ['tl_summer_rh', 'RH', fmt(farm.summer_design_rh_pct, 0)], ['tl_mcwb', 'MCWB', fmt(farm.summer_mcwb_c)],
+      ['tl_evap_wb', 'WB 0.4 %', fmt(farm.evap_wb_c)], ['tl_climate_source', 'Source', farm.climate_source || '—'],
+    ]);
+  }
+  function fillFarm(f) {
+    farm = f;
+    $('aAltitude').value = f.altitude_m; $('aMortality').value = f.mortality_pct;
+    $('aLat').value = f.latitude ?? ''; $('aLon').value = f.longitude ?? '';
+    if ([...$('aGenetics').options].some(o => o.value === f.default_genetics)) $('aGenetics').value = f.default_genetics;
+    farmRows();
+  }
+  Promise.all([fetch('./genetics').then(r => r.json()), fetch('./settings').then(r => r.json())]).then(([list, st]) => {
+    list.forEach(p => $('aGenetics').add(new Option(p.name, p.id)));
+    fillFarm(st.farm);
+  }).catch(() => {});
+
+  $('aSave').addEventListener('click', async () => {
+    $('aError').style.display = 'none';
+    // Климат и координаты пишет только кнопка климата — здесь их не трогаем,
+    // кроме координат: их можно поправить и сохранить без запроса климата
+    const body = { ...farm, altitude_m: num('aAltitude'), mortality_pct: num('aMortality'),
+                   default_genetics: $('aGenetics').value, latitude: opt('aLat'), longitude: opt('aLon') };
+    const r = await putSettings({ farm: body });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return error('a', j);
+    fillFarm(j.farm);
+    done('aDone', tr('settings_saved', 'Saved'));
+  });
+
+  $('aClimate').addEventListener('click', async () => {
+    $('aError').style.display = 'none';
+    if (opt('aLat') === null || opt('aLon') === null) return;
+    $('aClimate').disabled = true;
+    done('aDone', tr('tl_climate_loading', 'Loading…'));
+    const r = await writeRequest('POST', './settings/design-climate', { latitude: opt('aLat'), longitude: opt('aLon') });
+    $('aClimate').disabled = false;
+    const j = await r.json().catch(() => ({}));
+    $('aDone').style.display = 'none';
+    if (!r.ok) return error('a', j);
+    fillFarm(j.farm);
+  });
+
+  // ── Резервная копия ────────────────────────────────────────────────────────
+  $('bDownload').addEventListener('click', async () => {
+    const j = await fetch('./backup').then(r => r.json());
+    const blob = new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pigmax-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('bFile').addEventListener('change', async () => {
+    $('bError').style.display = 'none';
+    const file = $('bFile').files[0];
+    $('bFile').value = '';          // тот же файл можно выбрать снова
+    if (!file || !confirm(tr('tl_confirm_restore', 'Replace the saved data?'))) return;
+    let body;
+    try { body = JSON.parse(await file.text()); } catch (_) { return error('b', { detail: { code: 'backup_invalid' } }); }
+    const r = await writeRequest('POST', './backup', body);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return error('b', j);
+    done('bDone', tr('tl_restored', 'Restored'));
+    fetch('./settings').then(r => r.json()).then(st => fillFarm(st.farm)).catch(() => {});
+  });
+
   // Тексты, собранные скриптом, перерисовываются при смене языка
-  document.addEventListener('langchange', () => Object.values(last).forEach(({ j, render }) => render(j)));
+  document.addEventListener('langchange', () => {
+    Object.values(last).forEach(({ j, render }) => render(j));
+    farmRows();
+  });
 })();
