@@ -10,8 +10,9 @@
 
   co2      — выдыхаемый CO₂ разбавить до предела (CIGR 2002, ур. 36: среднесуточно);
   moisture — пар здания вынести наружным воздухом до предела RH (баланс влагосодержания);
-  norm     — норма источника: PIC (табл. 4.1 и руководство по свиноматкам 2021)
-             или РД-АПК 1.10.02.04-12 (30/45/60 м³/ч на 100 кг живой массы).
+  norm     — норма источника: PIC (табл. 4.1 и руководство по свиноматкам 2021),
+             РД-АПК 1.10.02.04-12 (30/45/60 м³/ч на 100 кг живой массы) или
+             профиль генетики (core/genetics.py), если в нём есть норма на голову.
 
 Определяющий критерий называется в ответе (`basis`), как `qmin_basis` в MINMAXapp.
 """
@@ -20,11 +21,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
+from . import genetics as genetics_mod
 from . import psychro
 from .pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, PigHeat, pig_heat
 from .pig_profile import interpolate_by_weight
 
-NormSource = Literal["pic", "rd_apk_2012", "none"]
+NormSource = Literal["pic", "rd_apk_2012", "genetics", "none"]
 Period = Literal["cold", "transition", "warm"]
 
 # Предел CO₂ по умолчанию — PIC 2019 (с. 4-10) и Klimaatplatform 2021: 3000 ppm.
@@ -104,11 +106,23 @@ def moisture_m3h(vapour_g_h: float, t_inside_c: float, rh_max_pct: float,
 
 
 def norm_m3h(norm: NormSource, group: str, weight_kg: float, period: Period,
-             litter_mass_kg: Optional[float]) -> tuple[Optional[float], Optional[str], list[dict]]:
+             litter_mass_kg: Optional[float], genetics: Optional[str] = None,
+             phase: Optional[str] = None) -> tuple[Optional[float], Optional[str], list[dict]]:
     """Норма источника на голову, м³/ч; id источника; допущения."""
     notes: list[dict] = []
     if norm == "none":
         return None, None, notes
+    if norm == "genetics":
+        if genetics is None:
+            raise ValueError("norm 'genetics' needs a genetics profile")
+        if group != "growing":
+            raise ValueError("genetics profiles cover growing pigs only")
+        sp = genetics_mod.setpoints(genetics, weight_kg=weight_kg, phase=phase)
+        if sp.min_vent_m3h is None:
+            # Норм вентиляции у Hypor, DanBred и в табл. 17 РД-АПК нет — не
+            # подставляем чужую молча, а просим выбрать норму явно
+            raise ValueError(f"profile {genetics} has no ventilation norm per head")
+        return sp.min_vent_m3h, sp.source_id, notes + sp.assumptions
     if norm == "pic":
         if group == "growing":
             return interpolate_by_weight(weight_kg).min_vent_m3_head_h, "pic_2019_w2f", notes
@@ -148,6 +162,8 @@ def min_ventilation(
     daily_gain_kg: Optional[float] = None,
     milk_kg_day: Optional[float] = None,
     litter_mass_kg: Optional[float] = None,
+    genetics: Optional[str] = None,
+    phase: Optional[str] = None,
 ) -> MinVentilation:
     """Минимальная вентиляция на голову при заданных условиях внутри и снаружи."""
     if co2_limit_ppm <= co2_outdoor_ppm:
@@ -181,7 +197,8 @@ def min_ventilation(
         if norm == "rd_apk_2012":
             assumptions.append(_note("period_from_outside_temperature", period=period,
                                      warm_above_c=WARM_ABOVE_C, cold_below_c=COLD_BELOW_C))
-    q_norm, norm_source, norm_notes = norm_m3h(norm, group, weight_kg, period, litter_mass_kg)
+    q_norm, norm_source, norm_notes = norm_m3h(norm, group, weight_kg, period, litter_mass_kg,
+                                               genetics=genetics, phase=phase)
     assumptions.extend(norm_notes)
     if norm_source:
         sources.append(norm_source)

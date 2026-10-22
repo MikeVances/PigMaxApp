@@ -160,6 +160,63 @@ _SOURCES: tuple[Source, ...] = (
         limits="Норма одна на весь срок, без зависимости от массы и дня супоросности.",
         url="https://www.pic.com/wp-content/uploads/sites/3/2021/12/PIC-Gilt-Sow-Management-Guidelines.pdf",
     ),
+    Source(
+        id="hypor_2023", kind="manufacturer",
+        citation="Hypor Wean to Finish Management Manual 2023, табл. 7; Hypor Feeding Guide W2F (Magnus), табл. 2 и 4",
+        title="Wean to Finish Management Manual; Feeding Guide Wean to Finish (Magnus)",
+        publisher="Hypor (Hendrix Genetics)", year=2023,
+        locator="W2F Manual табл. 7 (с. 12); Feeding Guide табл. 2 (доращивание), табл. 4 (откорм)",
+        applies_to="уставки температуры по весу и кривая роста — профиль `hypor_2023`",
+        statement=(
+            "Температура на уровне свиней по весу: 5 кг — 31 °C, 6 — 27, 8 — 26, 10 — 24, 12 — 23, "
+            "17 — 22, 25 — 21, 40 — 19, 60 — 18, 105 — 16 °C. RH 55–75 %. Рост: доращивание 6.0 → 25.9 кг "
+            "за 42 дня; откорм Magnus понедельно 25.0 → 138.2 кг за 17 недель."
+        ),
+        how_used=(
+            "Полосы табл. 7 сплошные, поэтому это точки одной кривой. Кривые роста сшиты по весу: "
+            "откорм сдвинут на −1.1 сут, чтобы 25.9 кг совпали (таблицы расходятся на 0.9 кг). "
+            "Предел RH — верхний край, 75 %."
+        ),
+        limits="Норм вентиляции на голову у Hypor нет — норму берите `pic`, `rd_apk_2012` или физику.",
+    ),
+    Source(
+        id="klimaatplatform_2021", kind="extension",
+        citation="Klimaatplatform Varkenshouderij 2021, Richtlijnen klimaatinstellingen (Topigs Norsvin TN70, табл. 12)",
+        title="Richtlijnen klimaatinstellingen",
+        publisher="Klimaatplatform Varkenshouderij (NL); журнал Varkens, 2021", year=2021,
+        locator="одна страница; TN70 Feed Manual 2023, табл. 12 и 24",
+        applies_to="начало вентиляции, мин. и макс. вентиляция на голову по дням — профиль `klimaatplatform_2021`",
+        statement=(
+            "Доращивание (посадка ≈7.5 кг, день 21, день 42): мин. 3/6/8, макс. 12/18/25 м³/ч на голову, "
+            "начало вентиляции 26 (сплошной подогреваемый пол) или 28 (полностью щелевой), 24, 20 °C. "
+            "Откорм (день 1 ≈23 кг, 5, 50, 100): мин. 6/8/14/17, макс. 40/40/80/80, начало 25/22/20/19 °C. "
+            "P-band 5 °C; нейтральная зона отопления 1–2 °C; минимум — по CO₂ ≤ 3000 ppm в покое."
+        ),
+        how_used=(
+            "Дни переведены в вес: откорм — по TN Select (кастраты, табл. 1) со сдвигом, чтобы день 1 = 23 кг; "
+            "доращивание — 7.5 кг на посадке, 23 кг на 42-й день, 21-й день по форме кривой Hypor (гипотеза). "
+            "Уставка — НАЧАЛО ВЕНТИЛЯЦИИ: расчётная температура помещения на 1.5 °C ниже. "
+            "Посадка доращивания — вариант полностью щелевого пола (28 °C)."
+        ),
+        limits="Свиноматки в таблице есть — используются на этапе свиноматок.",
+        url="https://www.varkens.nl/public/file/183845.pdf",
+    ),
+    Source(
+        id="danbred_manual", kind="manufacturer",
+        citation="DanBred Manual (web), Pig finisher manual — production facilities, двухклиматный станок",
+        title="DanBred Manual — Pig finisher manual: production facilities",
+        publisher="DanBred", year=None,
+        locator="таблица «Weight / Ambient temperature beneath the cover / Set temp. room / Set humidity room»",
+        applies_to="уставки помещения и RH доращивания 5.5–30 кг — профиль `danbred`",
+        statement=(
+            "По весу 5.5 / 6 / 7 / 8.5 / 11 / 15 / 18 / 25 / 30 кг: под крышкой 31–32 … 21–22 °C; пол под "
+            "крышкой 32 °C до 11 кг; помещение 25–26 / 24 / 24 / 23 / 22 / 21 / 20 / 19 / 18 °C; "
+            "RH помещения 60 / 61 / 61 / 62 / 63 / 64 / 70 / 71 / 72 %."
+        ),
+        how_used="Уставка помещения — температура помещения; диапазон 25–26 °C взят серединой. RH — как предел для баланса влаги.",
+        limits="Только доращивание до 30 кг; откорм и нормы вентиляции на голову в открытой части руководства не даны.",
+        url="https://danbred-manual.com/en/pig-finisher-manual/production-facilities/",
+    ),
 )
 
 

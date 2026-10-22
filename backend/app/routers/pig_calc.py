@@ -6,6 +6,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, model_validator
+from ..core import genetics as genetics_mod
 from ..core import sources
 from ..core.min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
                                     MinVentilation, NormSource, Period, min_ventilation)
@@ -65,6 +66,14 @@ class MinVentParams(BaseModel):
     period:           Optional[Period] = None
     altitude_m:       float = Field(0.0, ge=-100, le=4000)
     floor_feed:       FloorFeed = "dry_feed_dry_floor"
+    genetics:         Optional[str] = Field(None, description="Genetics profile id — for norm 'genetics'")
+    phase:            Optional[genetics_mod.Phase] = None
+
+    @model_validator(mode="after")
+    def _known_genetics(self):
+        if self.genetics is not None and self.genetics not in genetics_mod.PROFILES:
+            raise ValueError(f"unknown genetics profile: {self.genetics}")
+        return self
 
 
 # Наружная RH по умолчанию для /calc/ventilation: интерфейс её пока не спрашивает.
@@ -122,6 +131,21 @@ class MinVentRequest(HeatProductionRequest, MinVentParams):
     rh_outside_pct:  float = Field(..., ge=0, le=100)
     num_animals:     int   = Field(1, gt=0)
     litter_mass_kg:  Optional[float] = Field(None, ge=0, le=200, description="Lactating sow: litter mass for the RD-APK norm")
+
+
+class SetpointsRequest(BaseModel):
+    genetics:   str
+    weight_kg:  Optional[float] = Field(None, gt=0, le=200)
+    day:        Optional[float] = Field(None, ge=0, le=250, description="Days after weaning")
+    phase:      Optional[genetics_mod.Phase] = None
+
+    @model_validator(mode="after")
+    def _check(self):
+        if self.genetics not in genetics_mod.PROFILES:
+            raise ValueError(f"unknown genetics profile: {self.genetics}")
+        if (self.weight_kg is None) == (self.day is None):
+            raise ValueError("pass exactly one of weight_kg or day")
+        return self
 
 
 class StockingRequest(BaseModel):
@@ -227,7 +251,8 @@ def _min_vent_or_422(group, weight_kg, t_in, t_out, rh_out, params: MinVentParam
             group, weight_kg, t_in, t_out, rh_out,
             rh_max_pct=params.rh_max_pct, co2_limit_ppm=params.co2_limit_ppm,
             co2_outdoor_ppm=params.co2_outdoor_ppm, norm=params.norm, period=params.period,
-            altitude_m=params.altitude_m, floor_feed=params.floor_feed, **kw)
+            altitude_m=params.altitude_m, floor_feed=params.floor_feed,
+            genetics=params.genetics, phase=params.phase, **kw)
     except MethodNotApplicable as e:
         raise HTTPException(status_code=422, detail={"code": "method_not_applicable", "message": str(e)})
     except ValueError as e:
@@ -275,6 +300,34 @@ def calc_heat_production(req: HeatProductionRequest):
         "sources":     [h.source_id],
         "assumptions": h.assumptions,
         "warnings":    h.warnings,
+    }
+
+
+@router.get("/genetics")
+def list_genetics():
+    """Genetics profiles: what each setpoint means and what data the profile has."""
+    return [{
+        "id": p.id, "name": p.name, "source_id": p.source_id,
+        "setpoint_meaning": p.setpoint_meaning,
+        "has_growth_curve": p.growth is not None,
+        "has_ventilation_norm": any(c.min_vent_by_weight for c in (p.nursery, p.finisher)),
+        "nursery_max_kg": p.nursery_max_kg,
+    } for p in genetics_mod.PROFILES.values()]
+
+
+@router.post("/calc/setpoints")
+def calc_setpoints(req: SetpointsRequest):
+    """Setpoints of a genetics profile for a weight or a day after weaning."""
+    try:
+        sp = genetics_mod.setpoints(req.genetics, weight_kg=req.weight_kg, day=req.day, phase=req.phase)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail={"code": "invalid_parameters", "message": str(e)})
+    return {
+        "genetics": sp.profile_id, "phase": sp.phase, "weight_kg": sp.weight_kg,
+        "setpoint_c": sp.setpoint_c, "setpoint_meaning": sp.setpoint_meaning,
+        "design_room_temp_c": sp.design_room_temp_c,
+        "min_vent_m3h": sp.min_vent_m3h, "max_vent_m3h": sp.max_vent_m3h, "rh_pct": sp.rh_pct,
+        "sources": [sp.source_id], "assumptions": sp.assumptions, "warnings": sp.warnings,
     }
 
 

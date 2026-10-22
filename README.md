@@ -106,6 +106,10 @@ criteria: CO₂ dilution (CIGR 2002), moisture removal at the RH limit (psychrom
 norm (`pic`, `rd_apk_2012` or `none`). The response names the deciding criterion (`basis`).
 `/calc/ventilation` uses the same maximum instead of the PIC table alone.
 
+`GET /genetics`, `POST /calc/setpoints` — genetics profiles (PIC 2019, Hypor 2023, Klimaatplatform NL 2021 /
+Topigs Norsvin, DanBred, RD-APK): setpoint by weight or by day after weaning, what the setpoint means
+(room temperature vs. ventilation start) and the design room temperature for heat and moisture balances.
+
 ---
 
 ## Data Sources
