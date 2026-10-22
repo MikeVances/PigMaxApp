@@ -110,6 +110,13 @@ norm (`pic`, `rd_apk_2012` or `none`). The response names the deciding criterion
 Topigs Norsvin, DanBred, RD-APK): setpoint by weight or by day after weaning, what the setpoint means
 (room temperature vs. ventilation start) and the design room temperature for heat and moisture balances.
 
+House calculations (physics ported from MINMAXapp, see `docs/porting/house_census.md`):
+`POST /calc/envelope` (UA by layers, BR 443 / ISO 6946; `GET /construction-materials`),
+`POST /calc/evap-cooling` (pad cooling, SANHE tables), `POST /calc/tunnel-fans` (fans at the operating point),
+`POST /calc/max-ventilation` (summer ventilation: heat removal vs. PIC / genetics norm),
+`POST /calc/effective-temperature` (air speed and floor effect on pigs, McFarlane / Close).
+Design climate from Open-Meteo is ported but exposed only with API v1 keys (external quota).
+
 ---
 
 ## Data Sources

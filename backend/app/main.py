@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from .routers import pig_calc
 from .routers import pig_settings as settings_router
 from .routers import feedback as feedback_router
+from .routers import house_calc
 from .core.build_info import APP_VERSION, build_info
 
 # Ищем .env рядом с backend/ независимо от рабочей директории запуска
@@ -27,6 +28,7 @@ def version():
 app.include_router(pig_calc.router,        tags=["calc"])
 app.include_router(settings_router.router, tags=["settings"])
 app.include_router(feedback_router.router, tags=["feedback"])
+app.include_router(house_calc.router,      tags=["house"])
 
 _static_dir = Path(__file__).parent / "static"
 if _static_dir.exists():

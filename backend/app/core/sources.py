@@ -218,6 +218,36 @@ _SOURCES: tuple[Source, ...] = (
         url="https://danbred-manual.com/en/pig-finisher-manual/production-facilities/",
     ),
 
+    # ── Эффективная температура свиней ────────────────────────────────────────
+    Source(
+        id="mcfarlane_2000", kind="extension",
+        citation="McFarlane J.M. 2000, How Do Your Pigs Really Feel? Effective Temperature for Pigs (через OMAFRA, Chambers 2012, табл. 1)",
+        title="How Do Your Pigs Really Feel? Effective Temperature for Pigs",
+        publisher="Animal Environment Specialists; приведено в OMAFRA «Controlling heat stress in swine», 2012", year=2000,
+        locator="табл. 1 в статье OMAFRA",
+        applies_to="охлаждение свиней скоростью воздуха (эффективная температура)",
+        statement="Скорость воздуха 30 / 90 / 300 ft/min (0.15 / 0.46 / 1.52 м/с) снижает эффективную температуру на 4 / 7 / 10 °C.",
+        how_used="Линейно между точками; быстрее 1.52 м/с — 10 °C (данных нет). Обратная функция даёт скорость, нужную до уставки.",
+        limits="Эмпирика по поведению, без зависимости от веса и RH; совпадает с таблицей Hubbard Feeds, первоисточник McFarlane не прочитан.",
+    ),
+    Source(
+        id="close_1987", kind="research",
+        citation="Close W.H. 1987, табл. 3 (в репринте «Environmental housing requirements: climatic needs and responses of pigs», 2000)",
+        title="Environmental housing requirements — climatic needs and responses of pigs",
+        publisher="W.H. Close; thepigsite.com", year=1987,
+        locator="табл. 3 (поправки к критической температуре), табл. 4 (LCT групп)",
+        applies_to="влияние пола на теплоощущение свиней",
+        statement=(
+            "Относительно деревянного пола: солома 22 мм −4 °C, асфальт −2, бетонные щели +3 к нижней критической "
+            "температуре. Холодный мокрый пол эквивалентен снижению температуры воздуха на 7–10 °C (Mount 1975)."
+        ),
+        how_used=(
+            "Поправка к эффективной температуре ОТНОСИТЕЛЬНО ЩЕЛЕВОГО пола (уставки PIC заданы для щелей): "
+            "солома +7, асфальт +5, дерево +3, мокрый бетон −8.5 °C (середина 7–10, гипотеза)."
+        ),
+        limits="Заголовок табл. 3 «to be added to air temperature» прочитан как сдвиг критической температуры — иначе солома была бы холоднее щелей.",
+    ),
+
     # ── Корпус, климат, панели — перенесено из MINMAXapp sources.py (59390c7) ──
     Source(
         id="br443_2019_s3", kind="standard",

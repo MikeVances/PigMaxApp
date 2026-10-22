@@ -101,6 +101,7 @@ class HeatRequest(BaseModel):
     ua_coefficient:      float | None = None
     building_volume_m3:  float | None = None
     total_heater_kw:     float | None = None
+    heater_type:         Literal["gas", "electric"] = "gas"
     heat_method:         Method    = "cigr2002"
     feed_level:          FeedLevel = DEFAULT_FEED_LEVEL
     floor_feed:          FloorFeed = "dry_feed_dry_floor"
@@ -220,6 +221,7 @@ def calc_heat_balance(req: HeatRequest):
         heat_method         = req.heat_method,
         feed_level          = req.feed_level,
         floor_feed          = req.floor_feed,
+        heater_type         = req.heater_type,
     )
 
     result["target_temp_c"] = sp.target_temp_c
