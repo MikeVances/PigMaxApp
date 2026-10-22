@@ -86,4 +86,5 @@
 | <a id="gas_heater_treated_as_open_flame"></a>`gas_heater_treated_as_open_flame` | газовый отопитель считается открытым пламенем (CO₂ и пар в помещение) |
 | <a id="mortality_linear"></a>`mortality_linear` | падёж цикла распределён по дням линейно |
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
+| <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |
 | <a id="summer_target_rd_apk"></a>`summer_target_rd_apk` | летняя цель 26 °C — нижний край «26–28 °C» РД-АПК прим. 3 |

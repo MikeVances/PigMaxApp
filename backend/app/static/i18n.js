@@ -1,4 +1,4 @@
-// i18n.js — Translation engine for MINMAXapp
+// i18n.js — Translation engine for PigMaxApp
 // Language data is loaded from i18n/<lang>.js files BEFORE this script.
 // Usage in HTML:  <tag data-i18n="key">fallback</tag>
 // Usage in JS:    t('key') or t('key', { var: value })
@@ -63,6 +63,9 @@
     localStorage.setItem('lang', lang);
     applyDOM();
     updateSwitcherUI();
+    // Тексты, которые страница собрала скриптом (предупреждения, статусы), applyDOM
+    // не видит — страница перерисует их по этому событию
+    document.dispatchEvent(new CustomEvent('langchange', { detail: lang }));
   }
 
   // ── Language switcher UI ──────────────────────────────────────────────────

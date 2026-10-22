@@ -167,6 +167,16 @@ def calc_ventilation(req: VentRequest):
     sp = interpolate_by_weight(req.weight_kg)
 
     setpoint = sp.winter_setpoint_c if req.season == "winter" else sp.summer_setpoint_c
+    target, day, meaning = sp.target_temp_c, sp.day_post_weaning, "room_temperature"
+    profile_notes, profile_warnings = [], []
+
+    # Другой профиль генетики: уставка — расчётная температура помещения профиля
+    # (у голландского — на 1.5 °C ниже начала вентиляции). Сезонных уставок там нет
+    if req.genetics and req.genetics != "pic_2019":
+        gsp = genetics_mod.setpoints(req.genetics, weight_kg=req.weight_kg, phase=req.phase)
+        setpoint, target, day, meaning = gsp.design_room_temp_c, gsp.setpoint_c, None, gsp.setpoint_meaning
+        profile_notes = gsp.assumptions + [{"code": "season_ignored_for_profile", "params": {"genetics": req.genetics}}]
+        profile_warnings = gsp.warnings
 
     # Минимальная вентиляция = max(норма, влага, CO₂) при уставке выбранного сезона:
     # от температуры помещения зависят тепло, его доля явного и предел влагосодержания
@@ -177,15 +187,18 @@ def calc_ventilation(req: VentRequest):
     assumptions = list(mv.assumptions)
     if req.rh_outside_pct is None:
         assumptions.append({"code": "outside_rh_default", "params": {"rh_pct": DEFAULT_OUTSIDE_RH_PCT}})
+    assumptions += profile_notes
 
     # Comfort check: if outside > setpoint, suggest increased ventilation
     cooling_needed = req.t_outside_c > setpoint
 
     return {
         "weight_kg":             req.weight_kg,
-        "day_post_weaning":      sp.day_post_weaning,
-        "target_temp_c":         sp.target_temp_c,
+        "day_post_weaning":      day,
+        "target_temp_c":         target,
         "setpoint_c":            setpoint,
+        "setpoint_meaning":      meaning,
+        "genetics":              req.genetics or "pic_2019",
         "min_vent_per_head_m3h": mv.per_head_m3h,
         "min_vent_total_m3h":    round(mv.per_head_m3h * req.num_pigs, 0),
         "min_vent_basis":        mv.basis,
@@ -199,7 +212,7 @@ def calc_ventilation(req: VentRequest):
         "cooling_needed":        cooling_needed,
         "rh_limit_pct":          req.rh_max_pct,
         "gas_limits":            gas_limits(),
-        "warnings":              weight_warnings(req.weight_kg) + mv.warnings,
+        "warnings":              (weight_warnings(req.weight_kg) if not profile_notes else []) + profile_warnings + mv.warnings,
         "assumptions":           assumptions,
     }
 

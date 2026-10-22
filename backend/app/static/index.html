@@ -45,6 +45,19 @@
         </label>
 
         <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_rh_outside">Outside RH, %</span>
+          <input id="rhOutside" type="number" min="5" max="100" step="5" value="85"
+                 style="width:100%;margin-top:4px;" />
+        </label>
+
+        <label>
+          <span class="muted" style="font-size:12px;" data-i18n="label_genetics">Genetics</span>
+          <select id="genetics" style="width:100%;margin-top:4px;">
+            <option value="pic_2019">PIC (Wean to Finish 2019)</option>
+          </select>
+        </label>
+
+        <label>
           <span class="muted" style="font-size:12px;" data-i18n="label_season">Season</span>
           <select id="season" style="width:100%;margin-top:4px;">
             <option value="winter" data-i18n="season_winter">Winter</option>
@@ -82,6 +95,21 @@
           <div id="resVentPerHead" style="font-size:24px;font-weight:700;">—</div>
           <div class="muted" style="font-size:11px;" data-i18n="unit_m3h_head">m³/head/h</div>
         </div>
+      </div>
+
+      <!-- Minimum ventilation: which requirement decides, and warnings -->
+      <div class="card" style="margin-bottom:16px;font-size:13px;">
+        <div>
+          <span class="muted" data-i18n="res_min_basis">Minimum set by: </span>
+          <strong id="resMinBasis">—</strong>
+        </div>
+        <div class="muted" style="margin-top:6px;">
+          CO₂ <strong id="resMinCo2">—</strong> ·
+          <span data-i18n="res_moisture">moisture</span> <strong id="resMinMoist">—</strong> ·
+          <span data-i18n="res_norm">norm</span> <strong id="resMinNorm">—</strong>
+          <span data-i18n="unit_m3h_head">m³/head/h</span>
+        </div>
+        <ul id="resWarnings" style="margin:8px 0 0 18px;padding:0;color:#ffb74d;display:none;"></ul>
       </div>
 
       <!-- Day / target badge -->
@@ -338,12 +366,15 @@
       const weight   = parseFloat(document.getElementById('avgWeight').value);
       const tOutside = parseFloat(document.getElementById('tOutside').value);
       const season   = document.getElementById('season').value;
+      const rhOut    = parseFloat(document.getElementById('rhOutside').value);
+      const genetics = document.getElementById('genetics').value;
       if (!numPigs || !weight || isNaN(tOutside)) return;
 
       // Ventilation
       const rv = await fetch('./calc/ventilation', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, t_outside_c: tOutside, season }),
+        body: JSON.stringify({ weight_kg: weight, num_pigs: numPigs, t_outside_c: tOutside, season,
+                               rh_outside_pct: isNaN(rhOut) ? null : rhOut, genetics }),
       });
       if (!rv.ok) return;
       const d = await rv.json();
@@ -352,7 +383,9 @@
       document.getElementById('resVentMin').textContent     = d.min_vent_total_m3h.toLocaleString();
       document.getElementById('resPigHeat').textContent     = d.pig_heat_total_kw;
       document.getElementById('resVentPerHead').textContent = d.min_vent_per_head_m3h;
-      document.getElementById('resDayWeaning').textContent  = d.day_post_weaning;
+      document.getElementById('resDayWeaning').textContent  = d.day_post_weaning ?? '—';
+      lastVent = d;
+      showMinimum(d);
       document.getElementById('resTargetTemp').textContent  = d.target_temp_c;
       document.getElementById('coolingAlert').style.display = d.cooling_needed ? '' : 'none';
       document.getElementById('results').style.display      = '';
@@ -367,6 +400,7 @@
         ua_coefficient:     s?.ua_coefficient ?? null,
         building_volume_m3: s ? s.building.volume_m3 : null,
         total_heater_kw:    s ? s.heater.total_power_kw : null,
+        heater_type:        s ? s.heater.heater_type : 'gas',
       };
       const rh = await fetch('./calc/heat-balance', {
         method: 'POST', headers: {'Content-Type':'application/json'},
@@ -396,6 +430,44 @@
       }
     });
 
+    // Чем определён минимум (CO₂, влага, норма) и предупреждения расчёта.
+    // Текст предупреждения — ключ warn_<код>; перевода нет — показываем сам код
+    let lastVent = null, lastStocking = null;
+    document.addEventListener('langchange', () => {
+      if (lastVent) showMinimum(lastVent);
+      if (lastStocking) showStockingStatus(lastStocking);
+    });
+
+    function showMinimum(d) {
+      const tr = (k, fb) => (window.t && window.t(k) !== k) ? window.t(k) : fb;
+      const b = d.min_vent_basis;
+      document.getElementById('resMinBasis').textContent = b ? tr('basis_' + b, b) : '—';
+      const br = d.min_vent_breakdown || {};
+      document.getElementById('resMinCo2').textContent   = br.co2_m3h ?? '—';
+      document.getElementById('resMinMoist').textContent = br.moisture_m3h ?? '—';
+      document.getElementById('resMinNorm').textContent  = br.norm_m3h ?? '—';
+      const ul = document.getElementById('resWarnings');
+      ul.innerHTML = '';
+      (d.warnings || []).forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = tr('warn_' + w.code, w.code);
+        ul.appendChild(li);
+      });
+      ul.style.display = (d.warnings || []).length ? '' : 'none';
+    }
+
+    // Профили генетики — из справочника сервера
+    fetch('./genetics').then(r => r.json()).then(list => {
+      const sel = document.getElementById('genetics');
+      sel.innerHTML = '';
+      list.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.name;
+        sel.appendChild(o);
+      });
+      sel.value = 'pic_2019';
+    }).catch(() => {});
+
     // ── Stocking density ─────────────────────────────────────────────────────
     document.getElementById('stockingBtn').addEventListener('click', async () => {
       const weight    = parseFloat(document.getElementById('avgWeight').value);
@@ -416,13 +488,18 @@
       document.getElementById('stkMax').textContent         = d.max_pigs_recommended;
       document.getElementById('stkUtil').textContent        = (d.utilization_pct ?? '—') + '%';
 
+      lastStocking = d;
+      showStockingStatus(d);
+      document.getElementById('stockingResult').style.display = '';
+    });
+
+    function showStockingStatus(d) {
       const statusEl = document.getElementById('stkStatus');
       statusEl.textContent = d.overstocked
         ? '⚠ ' + (window.t ? window.t('stk_overstocked') : 'Overstocked!')
         : '✓ '  + (window.t ? window.t('stk_ok')         : 'OK');
       statusEl.style.color = d.overstocked ? '#ff7a7a' : '#4caf50';
-      document.getElementById('stockingResult').style.display = '';
-    });
+    }
 
     // ── Init ─────────────────────────────────────────────────────────────────
     loadSettings();
