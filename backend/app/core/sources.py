@@ -266,6 +266,25 @@ _SOURCES: tuple[Source, ...] = (
         limits="Эмпирика по поведению, без зависимости от веса и RH; совпадает с таблицей Hubbard Feeds, первоисточник McFarlane не прочитан.",
     ),
     Source(
+        id="huynh_2005", kind="research",
+        citation="Huynh T.T.T. et al. 2005, J Anim Sci 83:1385–1396 (PMID 15890816)",
+        title="Effects of increasing temperatures on physiological changes in pigs at different relative humidities",
+        publisher="Journal of Animal Science", year=2005,
+        locator="аннотация (refs/norms_cooling/huynh_2005_pubmed_abstract.txt)",
+        applies_to="тепловой стресс растущих свиней: пороги и потеря корма",
+        statement=("Свинки 58–75 кг в камерах, температура 16→32 °C шагом 2 °C в сутки при RH 50/65/80 %. "
+                   "Порог реакции: дыхание 21.3–23.4 °C, теплопродукция 22.9, ректальная температура "
+                   "24.6–27.1, потребление корма 25.5 °C; выше порога корм падает на 81/99/106 г/(гол·сут) "
+                   "на °C при RH 50/65/80 %. Пороги дыхания и ректальной температуры наименьшие при 80 % RH."),
+        how_used=("Пороги дыхания и ректальной температуры — нижние границы при любой RH; потеря корма — "
+                  "наклон по RH линейно между точками опыта, умноженный на превышение 25.5 °C. "
+                  "В «сейчас» — при эффективной температуре (если дана скорость) и пределе RH; в проекте — "
+                  "в самый тяжёлый день при летнем воздухе без обдува."),
+        limits=("Прочитана только аннотация. Опыт — 60 кг, вне 58–75 кг и выше 32 °C — экстраполяция "
+                "(в ответе заметка). Эффективная температура вместо воздуха камеры — перенос, не результат "
+                "Huynh. Влага свиней в RH проекта не прибавлена."),
+    ),
+    Source(
         id="close_1987", kind="research",
         citation="Close W.H. 1987, табл. 3 (в репринте «Environmental housing requirements: climatic needs and responses of pigs», 2000)",
         title="Environmental housing requirements — climatic needs and responses of pigs",

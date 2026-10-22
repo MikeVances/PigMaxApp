@@ -45,6 +45,7 @@
 | <a id="air_speed_above_rd_apk"></a>`air_speed_above_rd_apk` | нужная летом скорость выше допустимой по РД-АПК табл. 18 (откорм 1.0, доращивание 0.6 м/с) |
 | <a id="tunnel_length_loss_not_included"></a>`tunnel_length_loss_not_included` | давление туннеля без потерь по длине корпуса — источника коэффициента нет, замер их заменяет |
 | <a id="tunnel_pressure_high"></a>`tunnel_pressure_high` | рабочее давление выше 50 Па — осевые вентиляторы теряют расход, перепроверьте каталог и панели |
+| <a id="heat_stress_feed_intake"></a>`heat_stress_feed_intake` | температура (эффективная или воздуха — `heat_stress.temperature_basis`) выше порога потребления корма Huynh 2005 (25.5 °C): свиньи недоедают `feed_loss_g_day` г/сут; `t_c`, `threshold_c`, `feed_loss_g_day` |
 | <a id="condensation_risk"></a>`condensation_risk` | самая холодная внутренняя поверхность ограждения холоднее точки росы при пределе RH: капель, мокрые стены; `element`, `surface_c`, `dew_point_c` (у проекта — `days`) |
 | <a id="leakage_exceeds_min_vent"></a>`leakage_exceeds_min_vent` | утечка при 4 Па больше минимума — отопление греет воздух щелей, уплотнение корпуса экономит тепло |
 | <a id="fan_curve_extrapolated"></a>`fan_curve_extrapolated` | рабочая точка за последней точкой каталога вентилятора |
@@ -92,6 +93,10 @@
 | <a id="mortality_linear"></a>`mortality_linear` | падёж цикла распределён по дням линейно |
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
 | <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |
+| <a id="heat_stress_rh_is_limit"></a>`heat_stress_rh_is_limit` | RH в помещении не вводится — тепловой стресс оценён при пределе RH профиля (`rh_pct`): наклон потери корма — сверху |
+| <a id="heat_stress_weight_extrapolated"></a>`heat_stress_weight_extrapolated` | вес вне 58–74.7 кг опыта Huynh: пороги перенесены как есть; тяжёлые свиньи страдают раньше |
+| <a id="heat_stress_rh_outside_study"></a>`heat_stress_rh_outside_study` | RH вне 50–80 % опыта: наклон потери корма взят по краю |
+| <a id="heat_stress_beyond_study_range"></a>`heat_stress_beyond_study_range` | температура выше 32 °C опыта: потеря корма — линейная экстраполяция |
 | <a id="summer_target_rd_apk"></a>`summer_target_rd_apk` | летняя цель 26 °C — нижний край «26–28 °C» РД-АПК прим. 3 |
 
 ## Калибровка и инструменты интерфейса

@@ -52,6 +52,8 @@
     $('eqLeak').textContent = fmt(j.envelope.leak_4pa_m3h);
     $('eqSummerAir').textContent = fmt(eq.summer_air_c);
     $('eqSpeed').textContent = fmt(eq.speed_to_summer_target_ms);
+    // Стресс в самый тяжёлый день, если нужная скорость не обеспечена (Huynh 2005)
+    $('eqStress').textContent = fmt(eq.heat_stress.t_c) + ' / ' + fmt(eq.heat_stress.feed_loss_g_day);
     $('eqPadsRow').style.display = eq.pads ? '' : 'none';
     if (eq.pads) $('eqPads').textContent = fmt(eq.pads.area_m2) + ' / ' + fmt(eq.pads.water_l_h);
 

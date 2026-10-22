@@ -21,6 +21,7 @@ from .house_checks import Airtightness, airtightness_q4, coldest_surface, conden
 from .max_ventilation import DEFAULT_RISE_C, max_ventilation
 from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
                               min_ventilation)
+from .heat_stress import heat_stress as heat_stress_check
 from .pig_effective_temp import effective_temperature
 from .pig_heat import DEFAULT_FEED_LEVEL
 from .psychro import pressure_at_altitude_pa
@@ -77,6 +78,7 @@ class Requirement:
     max_ventilation: dict
     heating: Optional[dict]
     effective_temperature: Optional[dict]
+    heat_stress: Optional[dict]
     sources: list[str]
     assumptions: list[dict] = field(default_factory=list)
     warnings: list[dict] = field(default_factory=list)
@@ -223,6 +225,17 @@ def requirement(inp: RequirementInput) -> Requirement:
         assumptions += e.assumptions
         warnings += e.warnings
 
+    # ── Тепловой стресс (Huynh 2005) ──────────────────────────────────────────
+    # Только растущие: опыт ставили на свинках ~60 кг. RH в помещении не вводится —
+    # берём предел RH профиля: оценка сверху, порог корма от неё не зависит
+    stress = None
+    if inp.group == "growing":
+        t_felt = eff["t_effective_c"] if eff is not None else t_in
+        assumptions.append(_note("heat_stress_rh_is_limit", rh_pct=round(rh_max)))
+        stress = heat_stress_check(t_felt, rh_max, weight, "effective" if eff is not None else "air",
+                                   assumptions, warnings)
+        sources.append("huynh_2005")
+
     return Requirement(
         weight_kg=round(weight, 2), t_inside_c=round(t_in, 1), setpoints=setpoints,
         heat={"total_w": heat.total_w, "sensible_w": heat.sensible_w, "latent_w": heat.latent_w,
@@ -237,7 +250,7 @@ def requirement(inp: RequirementInput) -> Requirement:
                          {"per_head_m3h": mx.per_head_m3h, "total_m3h": mx.total_m3h, "basis": mx.basis,
                           "heat_m3h": mx.heat_m3h_per_head, "norm_m3h": mx.norm_m3h_per_head,
                           "t_inside_c": mx.t_inside_c, "rise_c": mx.rise_c}),
-        heating=heating, effective_temperature=eff,
+        heating=heating, effective_temperature=eff, heat_stress=stress,
         sources=list(dict.fromkeys(sources)),
         assumptions=_unique(assumptions), warnings=_unique(warnings),
     )

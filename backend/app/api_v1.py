@@ -589,6 +589,8 @@ def create_ventilation_requirement(req: RequirementRequest, request: Request) ->
         body["heating"] = r.heating
     if r.effective_temperature is not None:
         body["effective_temperature"] = r.effective_temperature
+    if r.heat_stress is not None:
+        body["heat_stress"] = r.heat_stress
     _audit({"request_id": rid, "path": request.url.path, "status": 201,
             "request": req.model_dump(exclude_none=True),
             "result": {"min_total_m3h": r.min_ventilation["total_m3h"], "basis": r.min_ventilation["basis"],

@@ -629,6 +629,27 @@ components:
         floor_correction_c: { type: number }
         above_setpoint_c: { type: [number, "null"] }
 
+    HeatStress:
+      type: object
+      description: Тепловой стресс растущих свиней по Huynh 2005 (свинки ~60 кг)
+      required: [t_c, temperature_basis, rh_pct, thresholds_c, exceeded, feed_loss_g_day]
+      properties:
+        t_c: { type: number, description: "Температура, по которой оценено" }
+        temperature_basis: { type: string, enum: [effective, air], description: "effective — с обдувом и полом; air — воздух без обдува" }
+        rh_pct: { type: number }
+        thresholds_c:
+          type: object
+          required: [respiration, heat_production, rectal_temperature, feed_intake]
+          properties:
+            respiration: { type: number }
+            heat_production: { type: number }
+            rectal_temperature: { type: number }
+            feed_intake: { type: number }
+        exceeded:
+          type: array
+          items: { type: string, enum: [respiration, heat_production, rectal_temperature, feed_intake] }
+        feed_loss_g_day: { type: number, description: "Недоедание корма, г/(гол·сут); 0 — ниже порога корма" }
+
     RequirementResult:
       type: object
       required: [request_id, app_version, weight_kg, t_inside_c, setpoints, heat, min_ventilation, max_ventilation, sources, assumptions, warnings]
@@ -643,6 +664,7 @@ components:
         max_ventilation: { $ref: "#/components/schemas/MaxVentilation" }
         heating: { $ref: "#/components/schemas/Heating" }
         effective_temperature: { $ref: "#/components/schemas/EffectiveTemperature" }
+        heat_stress: { $ref: "#/components/schemas/HeatStress" }
         sources: { type: array, items: { $ref: "#/components/schemas/Source" } }
         assumptions: { type: array, items: { $ref: "#/components/schemas/Note" } }
         warnings: { type: array, items: { $ref: "#/components/schemas/Note" } }
@@ -731,7 +753,7 @@ components:
     Equipment:
       type: object
       required: [min_ventilation_capacity_m3h, max_ventilation_capacity_m3h, heating_capacity_kw, worst_heating_day,
-                 worst_summer_day, section_m2, section_speed_at_max_ms, summer_air_c, speed_to_summer_target_ms]
+                 worst_summer_day, section_m2, section_speed_at_max_ms, summer_air_c, speed_to_summer_target_ms, heat_stress]
       properties:
         min_ventilation_capacity_m3h: { type: number }
         max_ventilation_capacity_m3h: { type: number }
@@ -742,6 +764,7 @@ components:
         section_speed_at_max_ms: { type: number }
         summer_air_c: { type: number, description: "Воздух у свиней летом: за панелями у вентиляторов или наружный с подъёмом" }
         speed_to_summer_target_ms: { type: [number, "null"], description: "Скорость до летней цели (McFarlane); null — не хватит" }
+        heat_stress: { $ref: "#/components/schemas/HeatStress" }
         pads:
           type: object
           required: [pad_type, thickness_mm, area_m2, t_after_pad_c, t_at_fans_c, water_l_h, status_code]

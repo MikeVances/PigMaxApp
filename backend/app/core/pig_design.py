@@ -27,7 +27,8 @@ from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DE
                               min_ventilation)
 from .pig_effective_temp import speed_for_cooling_ms
 from .pig_heat import DEFAULT_FEED_LEVEL
-from .psychro import pressure_at_altitude_pa
+from .heat_stress import heat_stress as heat_stress_check, rh_at
+from .psychro import _w_from_wet_bulb, humidity_ratio, pressure_at_altitude_pa
 
 # Зимняя наружная RH по умолчанию для расчётного дня: ERA5 /climate-designs её не
 # отдаёт (только летнюю совпадающую); 85 % — типичная влажность зимнего воздуха
@@ -265,6 +266,18 @@ def design(inp: DesignInput) -> Design:
         if speed > limit:
             warnings.append(_note("air_speed_above_rd_apk", speed_ms=round(speed, 2), limit_ms=limit))
     sources += ["mcfarlane_2000", "rd_apk_2012"]
+
+    # Тепловой стресс в самый тяжёлый день при летнем воздухе БЕЗ обдува: что будет,
+    # если скорость не обеспечена. Влажность — того же воздуха: за панелями
+    # влагосодержание на линии мокрого термометра, без панелей — наружное; влагу
+    # свиней не прибавляем — RH занижена, наклон потери корма тоже (не в запас)
+    if "pads" in equipment:
+        w_air = _w_from_wet_bulb(cool.t_pad_out_c, cool.t_wb_c, p_pa)
+    else:
+        w_air = humidity_ratio(inp.summer_design_db_c, inp.summer_design_rh_pct, p_pa)
+    equipment["heat_stress"] = heat_stress_check(t_air, rh_at(t_air, w_air, p_pa), rows[-1]["weight_kg"],
+                                                 "air", assumptions, warnings)
+    sources.append("huynh_2005")
 
     return Design(days=rows, equipment=equipment, envelope=envelope,
                   sources=list(dict.fromkeys(sources)), assumptions=assumptions, warnings=warnings)
