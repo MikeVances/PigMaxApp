@@ -104,12 +104,15 @@ def max_ventilation(
     pregnancy_day: Optional[float] = None,
     daily_gain_kg: Optional[float] = None,
     milk_kg_day: Optional[float] = None,
+    lactation_day: Optional[float] = None,
+    litter_mass_kg: Optional[float] = None,
 ) -> MaxVentilation:
     if rise_c <= 0:
         raise ValueError("rise_c must be positive")
     t_in = t_outside_c + rise_c
     heat = pig_heat(group, weight_kg, t_in, method=method, feed_level=feed_level, floor_feed=floor_feed,
-                    pregnancy_day=pregnancy_day, daily_gain_kg=daily_gain_kg, milk_kg_day=milk_kg_day)
+                    pregnancy_day=pregnancy_day, daily_gain_kg=daily_gain_kg, milk_kg_day=milk_kg_day,
+                    lactation_day=lactation_day, litter_mass_kg=litter_mass_kg)
     q_heat_total = heat_removal_m3h(heat.sensible_w * num_animals, ua_w_per_k, t_in, rise_c, p_pa)
     q_heat = q_heat_total / num_animals
 

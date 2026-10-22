@@ -117,6 +117,11 @@ House calculations (physics ported from MINMAXapp, see `docs/porting/house_censu
 `POST /calc/effective-temperature` (air speed and floor effect on pigs, McFarlane / Close).
 Design climate from Open-Meteo is ported but exposed only with API v1 keys (external quota).
 
+Sows (dry, gestating, farrowing): `GET /sow-profiles`, `POST /calc/sow-setpoints` (room and creep by lactation day:
+PIC 2021, Hypor Libra, Klimaatplatform NL 2021, RD-APK) and `POST /calc/sow-room` (setpoints, minimum ventilation,
+heating with creep heaters, summer maximum). Sow heat by Stinn & Xin 2014 (modern U.S. calorimetry, sow + litter by
+lactation day) — method `stinn_xin_2014`.
+
 ---
 
 ## Data Sources

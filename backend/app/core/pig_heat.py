@@ -14,6 +14,8 @@
   cigr2002          — база: CIGR 2002, все группы (sources: cigr_2002)
   brown_brandl_2004 — современная генетика США, только растущие (brown_brandl_2004)
   rd_apk_2012       — российская норма проектирования, все группы (rd_apk_2012)
+  stinn_xin_2014    — измерения современного комплекса США (калориметрия по O₂/CO₂),
+                      свиноматки: супоросные и подсосные с гнездом по дню лактации
 
 Схема та же, что у птицы в MINMAXapp (bird_heat.py): полное тепло → явное на
 уровне здания → скрытое = полное − явное → пар = скрытое / теплота парообразования.
@@ -32,7 +34,7 @@ from typing import Literal, Optional
 # и ремонтные свинки до осеменения: у CIGR и РД-АПК он различается только
 # массой, а не отдельной формулой
 Group = Literal["growing", "boar", "dry_sow", "gestating_sow", "lactating_sow"]
-Method = Literal["cigr2002", "brown_brandl_2004", "rd_apk_2012"]
+Method = Literal["cigr2002", "brown_brandl_2004", "rd_apk_2012", "stinn_xin_2014"]
 
 # Столбцы CIGR 2002, табл. 2.1: страна и суточный привес, г
 FeedLevel = Literal["S", "NL700", "NL750", "NL800", "DK700", "DK800", "DK900"]
@@ -51,6 +53,7 @@ METHOD_SOURCE = {
     "cigr2002": "cigr_2002",
     "brown_brandl_2004": "brown_brandl_2004",
     "rd_apk_2012": "rd_apk_2012",
+    "stinn_xin_2014": "stinn_xin_2014",
 }
 
 # Теплота парообразования воды при 20 °C: CIGR 2002, с. 20 — 0.680 Вт·ч/г
@@ -253,6 +256,76 @@ def _rd_rows(group: str, pregnancy_day: float) -> list[tuple]:
     return RD_SOW_DRY_GESTATING
 
 
+# ─── Stinn & Xin 2014 ─────────────────────────────────────────────────────────
+# Trans. ASABE 57(5):1517–1528: непрямая калориметрия (O₂/CO₂ за вычетом горелок и
+# навоза) на комплексе 4300 свиноматок, 16 месяцев. Тепло — на уровне ПОМЕЩЕНИЯ:
+# скрытое включает испарение с пола и навоза (как CIGR ур. 32). Средние за сутки (TWA).
+#
+# Табл. 3 — супоросные, Вт/кг массы свиноматки, при 20 и 25 °C (±2.5):
+#   (THP, LHP, SHP, RQ); B/EG — осеменение и ранняя супоросность (до ~40-го дня),
+#   LG — поздняя. Массы: B/EG 204 кг, LG 219 кг (аннотация)
+SX_GESTATION = {
+    "B/EG": {20.0: (1.89, 0.74, 1.15, 1.07), 25.0: (1.82, 1.08, 0.74, 1.19)},
+    "LG":   {20.0: (1.57, 0.57, 1.00, 1.09), 25.0: (1.26, 0.87, 0.39, 1.22)},
+}
+SX_EARLY_GESTATION_END_DAY = 40      # «housed in the B/EG barn … until approximately day 40»
+
+# Табл. 4 — подсосные С ГНЕЗДОМ, 20–26 °C, Вт/кг массы СВИНОМАТКИ + ГНЕЗДА (сноска [a]):
+#   стадия → (масса свиноматки с гнездом, THP, LHP, SHP, RQ); стадии — по дню лактации
+SX_LACTATION = (
+    (-1, 222.0, 2.74, 1.83, 0.91, 1.05),   # до опороса
+    (0,  235.0, 3.35, 1.98, 1.37, 1.06),   # день 0–6
+    (7,  247.0, 4.15, 1.92, 2.23, 1.05),   # день 7–12
+    (13, 256.0, 4.38, 1.93, 2.45, 1.06),   # день 13–18 (отъём 18–22)
+)
+SX_LACTATION_T_RANGE = (20.0, 26.0)
+
+
+def _sx_co2_l_h(thp_w: float, rq: float) -> float:
+    """CO₂ из THP и RQ по ур. 1–2 статьи: THP = 16.18·O₂ + 5.02·CO₂ (мл/с), RQ = CO₂/O₂."""
+    co2_ml_s = thp_w / (16.18 / rq + 5.02)
+    return co2_ml_s * 3.6
+
+
+def _stinn_xin(group: str, weight_kg: float, t_c: float, pregnancy_day: float,
+               lactation_day: Optional[float], litter_mass_kg: Optional[float]):
+    """(полное, явное, скрытое Вт; CO₂ л/ч; допущения; предупреждения)."""
+    assumptions: list[dict] = []
+    warnings: list[dict] = []
+    if group in ("dry_sow", "gestating_sow"):
+        # Холостые после отъёма стоят в том же секторе B/EG
+        stage = "LG" if group == "gestating_sow" and pregnancy_day >= SX_EARLY_GESTATION_END_DAY else "B/EG"
+        if not 17.5 <= t_c <= 27.5:
+            warnings.append(_note("temperature_outside_source_range", source_id="stinn_xin_2014",
+                                  min_c=17.5, max_c=27.5))
+        tt = min(max(t_c, 20.0), 25.0)
+        lo, hi = SX_GESTATION[stage][20.0], SX_GESTATION[stage][25.0]
+        k = (tt - 20.0) / 5.0
+        thp, lhp, shp, rq = (a + (b - a) * k for a, b in zip(lo, hi))
+        assumptions.append(_note("gestation_stage", stage=stage))
+        mass = weight_kg
+    else:  # lactating_sow
+        if lactation_day is None:
+            raise ValueError("lactation_day is required for lactating_sow with stinn_xin_2014 (−1 — до опороса)")
+        row = SX_LACTATION[0]
+        for r in SX_LACTATION:
+            if lactation_day >= r[0]:
+                row = r
+        _, table_mass, thp, lhp, shp, rq = row
+        if not SX_LACTATION_T_RANGE[0] <= t_c <= SX_LACTATION_T_RANGE[1]:
+            warnings.append(_note("temperature_outside_source_range", source_id="stinn_xin_2014",
+                                  min_c=SX_LACTATION_T_RANGE[0], max_c=SX_LACTATION_T_RANGE[1]))
+        if litter_mass_kg is None:
+            # Удельное тепло — на массу свиноматки с гнездом; без массы гнезда берём
+            # массу самой таблицы (свиноматка 223 кг с гнездом этой стадии)
+            mass = table_mass
+            assumptions.append(_note("sow_and_litter_mass_from_source", mass_kg=table_mass))
+        else:
+            mass = weight_kg + litter_mass_kg
+    total = thp * mass
+    return total, shp * mass, lhp * mass, _sx_co2_l_h(total, rq), assumptions, warnings
+
+
 # ─── Общий вход ───────────────────────────────────────────────────────────────
 
 def pig_heat(
@@ -265,6 +338,8 @@ def pig_heat(
     daily_gain_kg: Optional[float] = None,
     milk_kg_day: Optional[float] = None,
     floor_feed: FloorFeed = "dry_feed_dry_floor",
+    lactation_day: Optional[float] = None,
+    litter_mass_kg: Optional[float] = None,
 ) -> PigHeat:
     """Тепло, пар и CO₂ одной головы при температуре помещения."""
     if group == "gestating_sow" and pregnancy_day is None:
@@ -299,6 +374,13 @@ def pig_heat(
         vapour = latent_w * 3600.0 / LATENT_HEAT_J_PER_G
         co2 = CIGR_CO2_M3H_PER_HPU * total_20
         assumptions.append(_note("sensible_share_from_cigr", share=round(share, 3)))
+
+    elif method == "stinn_xin_2014":
+        if group not in ("dry_sow", "gestating_sow", "lactating_sow"):
+            raise MethodNotApplicable(f"{method} covers sows only, not {group}")
+        total_w, sensible_w, latent_w, co2, assumptions, warnings = _stinn_xin(
+            group, weight_kg, t_inside_c, p, lactation_day, litter_mass_kg)
+        vapour = latent_w * 3600.0 / LATENT_HEAT_J_PER_G
 
     else:  # rd_apk_2012
         rows = _rd_rows(group, p)

@@ -164,6 +164,7 @@ def min_ventilation(
     litter_mass_kg: Optional[float] = None,
     genetics: Optional[str] = None,
     phase: Optional[str] = None,
+    lactation_day: Optional[float] = None,
 ) -> MinVentilation:
     """Минимальная вентиляция на голову при заданных условиях внутри и снаружи."""
     if co2_limit_ppm <= co2_outdoor_ppm:
@@ -171,7 +172,8 @@ def min_ventilation(
 
     heat = pig_heat(group, weight_kg, t_inside_c, method=method, feed_level=feed_level,
                     pregnancy_day=pregnancy_day, daily_gain_kg=daily_gain_kg,
-                    milk_kg_day=milk_kg_day, floor_feed=floor_feed)
+                    milk_kg_day=milk_kg_day, floor_feed=floor_feed,
+                    lactation_day=lactation_day, litter_mass_kg=litter_mass_kg)
     assumptions = list(heat.assumptions)
     warnings = list(heat.warnings)
     sources = [heat.source_id]
