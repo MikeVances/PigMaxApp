@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 from .pig_heat import pig_heat
 from .psychro import P_ATM_PA, dew_point_c
@@ -58,6 +58,47 @@ def envelope_area_m2(b: "BuildingDimensions") -> float:
     # Source: core/building_thermal.py -> envelope_area_m2
     """Стены, кровля и торцы, м². Пол не входит: теплообмен с ним идёт через грунт и массу."""
     return b.length_m * b.width_m + 2.0 * (b.length_m + b.width_m) * b.height_m
+
+
+@dataclass
+class CalibrationTest:
+    """Результаты теста охлаждения для калибровки"""
+    t_initial_c: float      # начальная температура, °C
+    t_final_c: float        # конечная температура через time_minutes, °C
+    t_outside_c: float      # температура снаружи, °C
+    time_minutes: float     # время теста, минуты
+    ua_coefficient: float   # рассчитанный коэффициент теплопотерь, Вт/°C
+    # "cooling_curve" — по отметкам на каждом градусе (core/cooling_fit, основной метод);
+    # метод по одной точке и теплоёмкости воздуха в PigMaxApp не переносился
+    method: str = "cooling_curve"
+    # Отметки кривой [[секунды, °C], …], первая — старт. Хранятся, чтобы пересчитать
+    # UA при изменении размеров корпуса
+    points: Optional[list] = None
+
+
+# Меньше 10 минут остывание воздуха не отделить от отдачи тепла полом и стенами
+MIN_CALIBRATION_MINUTES = 10.0
+
+
+def calibration_problem(cal: "CalibrationTest", building: Optional["BuildingDimensions"]) -> Optional[dict]:
+    # Source: core/building_thermal.py -> calibration_problem
+    """
+    None — калибровке можно верить; иначе {"code", "params"} — почему нельзя
+    (тот же формат, что у ошибок API: клиент переводит код).
+    """
+    if cal.method != "cooling_curve":
+        # Метод по одной точке и теплоёмкости воздуха игнорирует массу пола и стен
+        # и завышает UA в разы — нужен новый тест по кривой остывания
+        return {"code": "calibration_method_obsolete", "params": {}}
+    if cal.time_minutes < MIN_CALIBRATION_MINUTES:
+        return {"code": "calibration_too_short",
+                "params": {"minutes": round(cal.time_minutes, 1), "min": MIN_CALIBRATION_MINUTES}}
+    if building is not None:
+        u = cal.ua_coefficient / envelope_area_m2(building)
+        if not (U_ENVELOPE_MIN_W_M2K <= u <= U_ENVELOPE_MAX_W_M2K):
+            return {"code": "calibration_implausible",
+                    "params": {"u": round(u, 2), "min": U_ENVELOPE_MIN_W_M2K, "max": U_ENVELOPE_MAX_W_M2K}}
+    return None
 
 
 # Сопротивление теплоотдаче у внутренней поверхности, м²·К/Вт: 0.13 — стены,

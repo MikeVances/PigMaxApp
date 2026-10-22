@@ -61,3 +61,19 @@ def test_leakage_and_condensation_match_minmax_original():
     # Проба доходит до обеих веток конденсата и до ошибки близких точек
     assert golden["cond_x_-20"] is not None and golden["cond_roof_-20"] is None
     assert golden["too_close"] == ["CalcError", "leakage_points_too_close"]
+
+
+# ─── Калибровка UA по кривой остывания (перенос этапа 8.3) ────────────────────
+
+def test_cooling_fit_matches_minmax_original():
+    from backend.app.core import building_thermal, cooling_fit
+    from backend.tests.parity.probe_cooling import run as run_cooling
+    golden = json.loads((Path(__file__).parent / "data" / "minmax_cooling_parity_59390c7.json")
+                        .read_text(encoding="utf-8"))["values"]
+    port = json.loads(json.dumps(run_cooling(cooling_fit, building_thermal), default=str))
+    diffs = list(_diff(golden, port))
+    assert not diffs, diffs[:10]
+    # Проба доходит до механизма: UA модели восстановлен, ветки ошибок и предупреждений пройдены
+    assert abs(golden["good"]["ua_w_per_k"] / 2500 - 1) < 0.03
+    assert golden["small_dt"]["warnings"] == ["small_delta_t"]
+    assert [e[1] for e in golden["errors"]] == ["too_few_taps", "first_tap_not_start", "taps_temp_not_decreasing"]

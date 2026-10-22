@@ -93,3 +93,20 @@
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
 | <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |
 | <a id="summer_target_rd_apk"></a>`summer_target_rd_apk` | летняя цель 26 °C — нижний край «26–28 °C» РД-АПК прим. 3 |
+
+## Калибровка и инструменты интерфейса
+
+Коды маршрутов интерфейса (`/calc/calibrate-ua`, `PUT /settings`, `/calc/leakage`),
+не API v1 — приходят в `detail` как `{"code", "params"}`.
+
+| Код | Смысл |
+|---|---|
+| <a id="too_few_taps"></a>`too_few_taps` | меньше 4 отметок после старта — параметры кривой не разделяются |
+| <a id="first_tap_not_start"></a>`first_tap_not_start` | первая отметка должна быть стартом (0 с) |
+| <a id="taps_time_not_increasing"></a>`taps_time_not_increasing` | время отметок не растёт |
+| <a id="taps_temp_not_decreasing"></a>`taps_temp_not_decreasing` | температура не падает от отметки к отметке |
+| <a id="temp_not_above_outside"></a>`temp_not_above_outside` | в конце теста внутри не теплее улицы |
+| <a id="calibration_too_short"></a>`calibration_too_short` | тест короче 10 минут — остывание воздуха не отделить от отдачи тепла полом и стенами |
+| <a id="calibration_implausible"></a>`calibration_implausible` | средний U оболочки по калибровке вне 0.1–8 Вт/(м²·К) |
+| <a id="calibration_method_obsolete"></a>`calibration_method_obsolete` | калибровка не по кривой остывания — нужен новый тест |
+| <a id="calibration_ua_unresolved"></a>`calibration_ua_unresolved` | отметки не различают UA в пределах ±25 % — в расчёт не пускаем, нужен тест дольше или с большей разницей с улицей |

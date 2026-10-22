@@ -42,6 +42,9 @@ class PigSettings(BaseModel):
     building:       BuildingConfig = BuildingConfig()
     heater:         HeaterConfig   = HeaterConfig()
     ua_coefficient: float | None   = None   # W/K — from calibration
+    # Калибровка по кривой остывания (core/cooling_fit): отметки хранятся, чтобы
+    # пересчитать UA, если поменяются размеры корпуса
+    calibration:    dict | None    = None
 
 
 def load_settings() -> PigSettings:

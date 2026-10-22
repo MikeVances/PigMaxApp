@@ -141,3 +141,18 @@
   - «проект» — всегда, без данных класс `moderate`;
   - коды `leakage_exceeds_min_vent`, `condensation_risk`, `airtightness_class_assumed`;
   - поля `air_exchange_basis` и `heating_air_basis`.
+
+## Дополнение этапа 8.3 — калибровка UA по кривой остывания (2026-10-22)
+
+| Единица MINMAXapp | Решение |
+|---|---|
+| `cooling_fit.py` целиком | PORT (было SKIP); мост: `p_pa` явно |
+| `building_thermal`: `CalibrationTest`, `MIN_CALIBRATION_MINUTES`, `calibration_problem` | PORT (было SKIP); метод по одной точке не переносился — у записи всегда `cooling_curve` |
+| `routers/thermal.py`: `run_curve_calibration`, проверки при сохранении | ADAPT → `/calc/calibrate-ua` и `PUT /settings` с `calibration` (настройки корпуса PigMaxApp, без хранилища по корпусам) |
+
+- **Паритет**: `probe_cooling.py`, расхождений нет, эталон
+  `minmax_cooling_parity_59390c7.json`. На синтетической кривой UA восстановлен с
+  точностью 1.2 %; пройдены ветки предупреждений, ошибок отметок и правдоподобия.
+- **Пробел тестов**: ветка `calibration_ua_unresolved` маршрутом не проверена — не
+  подобрана синтетика с неразличимым UA. Сам механизм (`ua_not_resolved`) перенесён
+  1:1 и входит в паритет.
