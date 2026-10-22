@@ -140,6 +140,26 @@ _SOURCES: tuple[Source, ...] = (
         limits="В русском переводе пределы газов ошибочно подписаны «мг/м³» — калькулятор берёт ppm из оригинала.",
         url="https://www.pic.com/wp-content/uploads/sites/3/2021/12/PIC-Wean-To-Finish-Manual.pdf",
     ),
+    Source(
+        id="pic_2021_sow", kind="manufacturer",
+        citation="PIC Gilt & Sow Management Guidelines 2021, табл. 3.1 и 5.2",
+        title="Gilt & Sow Management Guidelines",
+        publisher="PIC", year=2021,
+        locator="табл. 3.1 (осеменение и супоросность), табл. 5.2 (опорос)",
+        applies_to="минимальная вентиляция свиноматок и хряков на голову",
+        statement=(
+            "Осеменение и супоросность: 18–20 °C, минимальная вентиляция зимой 12 cfm/гол, "
+            "максимальная 150 cfm/гол, RH < 65 %. Опорос: 21–23 °C при опоросе со снижением до "
+            "19 °C к 7–10 дню, вентиляция зимой 20 cfm/гол, летом 650 cfm/гол, RH < 65 %."
+        ),
+        how_used=(
+            "Норма `pic` для свиноматок: 12 cfm = 20.4 м³/ч (холостые, супоросные), 20 cfm = "
+            "34.0 м³/ч (подсосная со станком). Хрякам — норма табл. 3.1: своей у PIC нет, хряки "
+            "стоят в секторе осеменения."
+        ),
+        limits="Норма одна на весь срок, без зависимости от массы и дня супоросности.",
+        url="https://www.pic.com/wp-content/uploads/sites/3/2021/12/PIC-Gilt-Sow-Management-Guidelines.pdf",
+    ),
 )
 
 

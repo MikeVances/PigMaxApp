@@ -101,6 +101,11 @@ References used by the calculator: [`docs/sources.md`](docs/sources.md).
 `cigr2002` (default), `brown_brandl_2004` (growing pigs only) or `rd_apk_2012`.
 `GET /sources/{source_id}` explains every source id a response cites.
 
+`POST /calc/min-ventilation` — minimum ventilation per head for any group as the largest of three
+criteria: CO₂ dilution (CIGR 2002), moisture removal at the RH limit (psychrometric balance) and a
+norm (`pic`, `rd_apk_2012` or `none`). The response names the deciding criterion (`basis`).
+`/calc/ventilation` uses the same maximum instead of the PIC table alone.
+
 ---
 
 ## Data Sources

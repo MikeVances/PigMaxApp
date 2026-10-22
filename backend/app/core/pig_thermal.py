@@ -30,6 +30,7 @@ def analyze_heat_balance(
     total_heater_power_kw: float | None = None,
     heat_method: str = "cigr2002",
     feed_level: str = DEFAULT_FEED_LEVEL,
+    floor_feed: str = "dry_feed_dry_floor",
 ) -> dict:
     """
     Full heat balance for pig house.
@@ -43,7 +44,8 @@ def analyze_heat_balance(
         duty_cycle        — fraction of time heater runs (0–1)
         ach_min           — air changes per hour at minimum ventilation
     """
-    heat = pig_heat("growing", avg_weight_kg, t_inside_target, method=heat_method, feed_level=feed_level)
+    heat = pig_heat("growing", avg_weight_kg, t_inside_target, method=heat_method,
+                    feed_level=feed_level, floor_feed=floor_feed)
     q_pigs_kw = heat.sensible_w * num_pigs / 1000
 
     delta_t = t_inside_target - t_outside

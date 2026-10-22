@@ -37,6 +37,16 @@ Method = Literal["cigr2002", "brown_brandl_2004", "rd_apk_2012"]
 # Столбцы CIGR 2002, табл. 2.1: страна и суточный привес, г
 FeedLevel = Literal["S", "NL700", "NL750", "NL800", "DK700", "DK800", "DK900"]
 
+# Корм и пол — CIGR 2002, табл. 3.1 (с. 23, из CIGR 1984), поправка ks к явному
+# теплу свиней: часть явного тепла уходит на испарение с мокрого пола и жидкого
+# корма — воздух она не греет, а пар добавляет
+FloorFeed = Literal["dry_feed_dry_floor", "dry_feed_average_floor", "wet_feed_wet_floor"]
+KS_BY_FLOOR_FEED: dict[str, float] = {
+    "dry_feed_dry_floor": 1.0,
+    "dry_feed_average_floor": 0.95,
+    "wet_feed_wet_floor": 0.9,
+}
+
 METHOD_SOURCE = {
     "cigr2002": "cigr_2002",
     "brown_brandl_2004": "brown_brandl_2004",
@@ -254,6 +264,7 @@ def pig_heat(
     pregnancy_day: Optional[float] = None,
     daily_gain_kg: Optional[float] = None,
     milk_kg_day: Optional[float] = None,
+    floor_feed: FloorFeed = "dry_feed_dry_floor",
 ) -> PigHeat:
     """Тепло, пар и CO₂ одной головы при температуре помещения."""
     if group == "gestating_sow" and pregnancy_day is None:
@@ -313,6 +324,16 @@ def pig_heat(
         vapour = vapour_10 * k_vapour
         co2 = RD_CO2_L_PER_KJ_H * total_10
         assumptions.append(_note("vapour_animal_level"))
+
+    # Поправка ks (одинаково для всех методик): доля (1 − ks) явного тепла идёт
+    # на испарение — переходит в скрытое и добавляет пар
+    ks = KS_BY_FLOOR_FEED[floor_feed]
+    if ks < 1.0:
+        evaporation_w = sensible_w * (1.0 - ks)
+        sensible_w -= evaporation_w
+        latent_w += evaporation_w
+        vapour += evaporation_w * 3600.0 / LATENT_HEAT_J_PER_G
+        assumptions.append(_note("floor_feed", floor_feed=floor_feed, ks=ks))
 
     return PigHeat(
         total_w=round(total_w, 1),

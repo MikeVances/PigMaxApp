@@ -7,7 +7,9 @@ from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, model_validator
 from ..core import sources
-from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, Group, Method, MethodNotApplicable, pig_heat
+from ..core.min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
+                                    MinVentilation, NormSource, Period, min_ventilation)
+from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, MethodNotApplicable, pig_heat
 from ..core.pig_profile import TABLE_MAX_KG, TABLE_MIN_KG, interpolate_by_weight
 from ..core.pig_thermal  import analyze_heat_balance
 from ..core.pig_stocking import stocking_check
@@ -55,13 +57,29 @@ def weight_warnings(weight_kg: float) -> list[dict]:
     }]
 
 
-class VentRequest(BaseModel):
+class MinVentParams(BaseModel):
+    rh_max_pct:       float = Field(DEFAULT_RH_MAX_PCT, gt=30, le=95, description="Upper RH limit inside, %")
+    co2_limit_ppm:    float = Field(DEFAULT_CO2_LIMIT_PPM, ge=1000, le=5000)
+    co2_outdoor_ppm:  float = Field(DEFAULT_CO2_OUTDOOR_PPM, ge=300, le=600)
+    norm:             NormSource = "pic"
+    period:           Optional[Period] = None
+    altitude_m:       float = Field(0.0, ge=-100, le=4000)
+    floor_feed:       FloorFeed = "dry_feed_dry_floor"
+
+
+# Наружная RH по умолчанию для /calc/ventilation: интерфейс её пока не спрашивает.
+# 80 % — типичная зимняя влажность умеренного климата; в ответе это допущение
+DEFAULT_OUTSIDE_RH_PCT = 80.0
+
+
+class VentRequest(MinVentParams):
     weight_kg:    float = Field(..., gt=0, le=200, description="Average live weight, kg")
     num_pigs:     int   = Field(..., gt=0, description="Number of pigs in house")
     t_outside_c:  float = Field(..., description="Outside temperature, °C")
     # Literal, а не str: раньше любая опечатка («Winter», «зима») молча
     # считалась летом и давала летнюю уставку
     season:       Literal["winter", "summer"] = Field("winter", description="'winter' | 'summer'")
+    rh_outside_pct: Optional[float] = Field(None, ge=0, le=100)
     heat_method:  Method    = "cigr2002"
     feed_level:   FeedLevel = DEFAULT_FEED_LEVEL
 
@@ -76,6 +94,7 @@ class HeatRequest(BaseModel):
     total_heater_kw:     float | None = None
     heat_method:         Method    = "cigr2002"
     feed_level:          FeedLevel = DEFAULT_FEED_LEVEL
+    floor_feed:          FloorFeed = "dry_feed_dry_floor"
 
 
 class HeatProductionRequest(BaseModel):
@@ -87,6 +106,7 @@ class HeatProductionRequest(BaseModel):
     pregnancy_day:  Optional[float] = Field(None, ge=0, le=120)
     daily_gain_kg:  Optional[float] = Field(None, ge=0, le=1.5)
     milk_kg_day:    Optional[float] = Field(None, ge=0, le=20)
+    floor_feed:     FloorFeed = "dry_feed_dry_floor"
 
     @model_validator(mode="after")
     def _gestation_day(self):
@@ -95,6 +115,13 @@ class HeatProductionRequest(BaseModel):
         if self.group == "gestating_sow" and self.pregnancy_day is None:
             raise ValueError("pregnancy_day is required for gestating_sow")
         return self
+
+
+class MinVentRequest(HeatProductionRequest, MinVentParams):
+    t_outside_c:     float = Field(..., ge=-50, le=50)
+    rh_outside_pct:  float = Field(..., ge=0, le=100)
+    num_animals:     int   = Field(1, gt=0)
+    litter_mass_kg:  Optional[float] = Field(None, ge=0, le=200, description="Lactating sow: litter mass for the RD-APK norm")
 
 
 class StockingRequest(BaseModel):
@@ -116,10 +143,15 @@ def calc_ventilation(req: VentRequest):
 
     setpoint = sp.winter_setpoint_c if req.season == "winter" else sp.summer_setpoint_c
 
-    q_min_total = sp.min_vent_m3_head_h * req.num_pigs
-    # Тепло — при уставке выбранного сезона: от температуры помещения зависит и
-    # полное тепло (−1.2 %/°C), и его доля явного
-    heat = _heat_or_422("growing", req.weight_kg, setpoint, req.heat_method, req.feed_level)
+    # Минимальная вентиляция = max(норма, влага, CO₂) при уставке выбранного сезона:
+    # от температуры помещения зависят тепло, его доля явного и предел влагосодержания
+    rh_out = DEFAULT_OUTSIDE_RH_PCT if req.rh_outside_pct is None else req.rh_outside_pct
+    mv = _min_vent_or_422("growing", req.weight_kg, setpoint, req.t_outside_c, rh_out, req,
+                          method=req.heat_method, feed_level=req.feed_level)
+    heat = mv.heat
+    assumptions = list(mv.assumptions)
+    if req.rh_outside_pct is None:
+        assumptions.append({"code": "outside_rh_default", "params": {"rh_pct": DEFAULT_OUTSIDE_RH_PCT}})
 
     # Comfort check: if outside > setpoint, suggest increased ventilation
     cooling_needed = req.t_outside_c > setpoint
@@ -129,18 +161,21 @@ def calc_ventilation(req: VentRequest):
         "day_post_weaning":      sp.day_post_weaning,
         "target_temp_c":         sp.target_temp_c,
         "setpoint_c":            setpoint,
-        "min_vent_per_head_m3h": sp.min_vent_m3_head_h,
-        "min_vent_total_m3h":    round(q_min_total, 0),
+        "min_vent_per_head_m3h": mv.per_head_m3h,
+        "min_vent_total_m3h":    round(mv.per_head_m3h * req.num_pigs, 0),
+        "min_vent_basis":        mv.basis,
+        "min_vent_breakdown":    _breakdown(mv),
+        "humidity_uncontrollable": mv.humidity_uncontrollable,
         "pig_heat_w_per_head":   heat.total_w,
         "pig_heat_total_kw":     round(heat.total_w * req.num_pigs / 1000, 2),
         "pig_sensible_w_per_head": heat.sensible_w,
         "heat_method":           heat.method,
-        "sources":               [heat.source_id, "pic_2019_w2f"],
+        "sources":               _unique(mv.sources + ["pic_2019_w2f"]),
         "cooling_needed":        cooling_needed,
-        "rh_limit_pct":          65,   # PIC: humidity must not exceed 65%
+        "rh_limit_pct":          req.rh_max_pct,
         "gas_limits":            gas_limits(),
-        "warnings":              weight_warnings(req.weight_kg) + heat.warnings,
-        "assumptions":           heat.assumptions,
+        "warnings":              weight_warnings(req.weight_kg) + mv.warnings,
+        "assumptions":           assumptions,
     }
 
 
@@ -160,6 +195,7 @@ def calc_heat_balance(req: HeatRequest):
         total_heater_power_kw = req.total_heater_kw,
         heat_method         = req.heat_method,
         feed_level          = req.feed_level,
+        floor_feed          = req.floor_feed,
     )
 
     result["target_temp_c"] = sp.target_temp_c
@@ -175,12 +211,57 @@ def _heat_or_422(group, weight_kg, t_c, method, feed_level, **kw):
         raise HTTPException(status_code=422, detail={"code": "method_not_applicable", "message": str(e)})
 
 
+def _unique(ids: list[str]) -> list[str]:
+    return list(dict.fromkeys(ids))
+
+
+def _breakdown(mv: MinVentilation) -> dict:
+    """Все три критерия на голову — видно, насколько определяющий опережает остальные."""
+    return {"co2_m3h": mv.co2_m3h, "moisture_m3h": mv.moisture_m3h, "norm_m3h": mv.norm_m3h,
+            "delta_w_g_per_kg": mv.delta_w_g_per_kg}
+
+
+def _min_vent_or_422(group, weight_kg, t_in, t_out, rh_out, params: MinVentParams, **kw) -> MinVentilation:
+    try:
+        return min_ventilation(
+            group, weight_kg, t_in, t_out, rh_out,
+            rh_max_pct=params.rh_max_pct, co2_limit_ppm=params.co2_limit_ppm,
+            co2_outdoor_ppm=params.co2_outdoor_ppm, norm=params.norm, period=params.period,
+            altitude_m=params.altitude_m, floor_feed=params.floor_feed, **kw)
+    except MethodNotApplicable as e:
+        raise HTTPException(status_code=422, detail={"code": "method_not_applicable", "message": str(e)})
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail={"code": "invalid_parameters", "message": str(e)})
+
+
+@router.post("/calc/min-ventilation")
+def calc_min_ventilation(req: MinVentRequest):
+    """Minimum ventilation per head and per room: max(norm, moisture, CO₂)."""
+    mv = _min_vent_or_422(req.group, req.weight_kg, req.t_inside_c, req.t_outside_c, req.rh_outside_pct, req,
+                          method=req.method, feed_level=req.feed_level, pregnancy_day=req.pregnancy_day,
+                          daily_gain_kg=req.daily_gain_kg, milk_kg_day=req.milk_kg_day,
+                          litter_mass_kg=req.litter_mass_kg)
+    return {
+        "group":            req.group,
+        "per_head_m3h":     mv.per_head_m3h,
+        "total_m3h":        round(mv.per_head_m3h * req.num_animals, 0),
+        "basis":            mv.basis,
+        "breakdown":        _breakdown(mv),
+        "humidity_uncontrollable": mv.humidity_uncontrollable,
+        "heat": {"total_w": mv.heat.total_w, "sensible_w": mv.heat.sensible_w,
+                 "vapour_g_h": mv.heat.vapour_g_h, "co2_l_h": mv.heat.co2_l_h, "method": mv.heat.method},
+        "sources":          _unique(mv.sources),
+        "assumptions":      mv.assumptions,
+        "warnings":         mv.warnings,
+    }
+
+
 @router.post("/calc/heat-production")
 def calc_heat_production(req: HeatProductionRequest):
     """Heat, vapour and CO₂ of one animal (lactating sow — with her litter)."""
     h = _heat_or_422(req.group, req.weight_kg, req.t_inside_c, req.method, req.feed_level,
                      pregnancy_day=req.pregnancy_day, daily_gain_kg=req.daily_gain_kg,
-                     milk_kg_day=req.milk_kg_day)
+                     milk_kg_day=req.milk_kg_day, floor_feed=req.floor_feed)
     return {
         "group":       req.group,
         "weight_kg":   req.weight_kg,
