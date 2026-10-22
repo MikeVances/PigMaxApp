@@ -70,3 +70,13 @@ def test_language_switch_event_exists():
     # Блоки, собранные скриптом, перерисовываются по событию смены языка
     assert "langchange" in (STATIC / "i18n.js").read_text(encoding="utf-8")
     assert "addEventListener('langchange'" in (STATIC / "index.html").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("name", ["index.html", "feedback.js"])
+def test_styles_live_in_css(name):
+    # Оформление — в styles.css; во встроенных стилях допустим только display:none:
+    # это состояние, которое переключает скрипт, а не оформление
+    text = (STATIC / name).read_text(encoding="utf-8")
+    inline = set(re.findall(r'style="([^"]*)"', text)) - {"display:none;"}
+    assert not inline, inline
+    assert "style.cssText" not in text

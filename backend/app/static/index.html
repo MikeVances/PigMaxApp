@@ -16,57 +16,57 @@
   <main class="container">
 
     <!-- Header -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <h1 style="margin:0;" data-i18n="app_title">🐷 PigMax</h1>
+    <div class="page-header">
+      <h1 class="m0" data-i18n="app_title">🐷 PigMax</h1>
       <span class="badge" data-i18n="source_label">PIC 2019</span>
     </div>
 
     <!-- ── 1. Ventilation inputs ────────────────────────────────────────────── -->
-    <div class="card" style="margin-bottom:16px;">
-      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_inputs">House Parameters</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div class="card mb">
+      <h2 data-i18n="section_inputs">House Parameters</h2>
+      <div class="cols cols-180">
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_num_pigs">Number of pigs</span>
-          <input id="numPigs" type="number" min="1" max="10000" step="50" value="1000"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_num_pigs">Number of pigs</span>
+          <input class="field" id="numPigs" type="number" min="1" max="10000" step="50" value="1000"
+                 />
         </label>
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_avg_weight">Avg live weight, kg</span>
-          <input id="avgWeight" type="number" min="5" max="200" step="1" value="50"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_avg_weight">Avg live weight, kg</span>
+          <input class="field" id="avgWeight" type="number" min="5" max="200" step="1" value="50"
+                 />
         </label>
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_t_outside">Outside temp, °C</span>
-          <input id="tOutside" type="number" min="-30" max="45" step="1" value="-5"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_t_outside">Outside temp, °C</span>
+          <input class="field" id="tOutside" type="number" min="-30" max="45" step="1" value="-5"
+                 />
         </label>
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_rh_outside">Outside RH, %</span>
-          <input id="rhOutside" type="number" min="5" max="100" step="5" value="85"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_rh_outside">Outside RH, %</span>
+          <input class="field" id="rhOutside" type="number" min="5" max="100" step="5" value="85"
+                 />
         </label>
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_genetics">Genetics</span>
-          <select id="genetics" style="width:100%;margin-top:4px;">
+          <span class="muted small" data-i18n="label_genetics">Genetics</span>
+          <select class="field" id="genetics">
             <option value="pic_2019">PIC (Wean to Finish 2019)</option>
           </select>
         </label>
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_season">Season</span>
-          <select id="season" style="width:100%;margin-top:4px;">
+          <span class="muted small" data-i18n="label_season">Season</span>
+          <select class="field" id="season">
             <option value="winter" data-i18n="season_winter">Winter</option>
             <option value="summer" data-i18n="season_summer">Summer</option>
           </select>
         </label>
 
       </div>
-      <button id="calcBtn" class="btn" style="margin-top:14px;width:100%;" data-i18n="btn_calculate">
+      <button id="calcBtn" class="btn mt-14 full" data-i18n="btn_calculate">
         Calculate
       </button>
     </div>
@@ -74,97 +74,97 @@
     <!-- ── 2. Ventilation results ───────────────────────────────────────────── -->
     <div id="results" style="display:none;">
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;">
-        <div class="card" style="text-align:center;">
-          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_setpoint">Temperature setpoint</div>
-          <div id="resSetpoint" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
-          <div class="muted" style="font-size:11px;">°C</div>
+      <div class="cols cols-160 mb">
+        <div class="card center">
+          <div class="muted stat-label" data-i18n="res_setpoint">Temperature setpoint</div>
+          <div class="stat-value-main" id="resSetpoint">—</div>
+          <div class="muted unit">°C</div>
         </div>
-        <div class="card" style="text-align:center;">
-          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_vent_min">Min ventilation</div>
-          <div id="resVentMin" style="font-size:24px;font-weight:700;">—</div>
-          <div class="muted" style="font-size:11px;" data-i18n="unit_m3h">m³/h</div>
+        <div class="card center">
+          <div class="muted stat-label" data-i18n="res_vent_min">Min ventilation</div>
+          <div class="stat-value" id="resVentMin">—</div>
+          <div class="muted unit" data-i18n="unit_m3h">m³/h</div>
         </div>
-        <div class="card" style="text-align:center;">
-          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_pig_heat">Pig heat output</div>
-          <div id="resPigHeat" style="font-size:24px;font-weight:700;">—</div>
-          <div class="muted" style="font-size:11px;">kW</div>
+        <div class="card center">
+          <div class="muted stat-label" data-i18n="res_pig_heat">Pig heat output</div>
+          <div class="stat-value" id="resPigHeat">—</div>
+          <div class="muted unit">kW</div>
         </div>
-        <div class="card" style="text-align:center;">
-          <div class="muted" style="font-size:11px;margin-bottom:4px;" data-i18n="res_vent_per_head">Per head</div>
-          <div id="resVentPerHead" style="font-size:24px;font-weight:700;">—</div>
-          <div class="muted" style="font-size:11px;" data-i18n="unit_m3h_head">m³/head/h</div>
+        <div class="card center">
+          <div class="muted stat-label" data-i18n="res_vent_per_head">Per head</div>
+          <div class="stat-value" id="resVentPerHead">—</div>
+          <div class="muted unit" data-i18n="unit_m3h_head">m³/head/h</div>
         </div>
       </div>
 
       <!-- Minimum ventilation: which requirement decides, and warnings -->
-      <div class="card" style="margin-bottom:16px;font-size:13px;">
+      <div class="card mb text-13">
         <div>
           <span class="muted" data-i18n="res_min_basis">Minimum set by: </span>
           <strong id="resMinBasis">—</strong>
         </div>
-        <div class="muted" style="margin-top:6px;">
+        <div class="muted mt-6">
           CO₂ <strong id="resMinCo2">—</strong> ·
           <span data-i18n="res_moisture">moisture</span> <strong id="resMinMoist">—</strong> ·
           <span data-i18n="res_norm">norm</span> <strong id="resMinNorm">—</strong>
           <span data-i18n="unit_m3h_head">m³/head/h</span>
         </div>
-        <ul id="resWarnings" style="margin:8px 0 0 18px;padding:0;color:#ffb74d;display:none;"></ul>
+        <ul class="warn-list" id="resWarnings" style="display:none;"></ul>
       </div>
 
       <!-- Day / target badge -->
-      <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div class="card mb badge-row">
         <div>
-          <span class="muted" style="font-size:12px;" data-i18n="res_day_weaning">Day post-weaning: </span>
+          <span class="muted small" data-i18n="res_day_weaning">Day post-weaning: </span>
           <strong id="resDayWeaning">—</strong>
         </div>
         <div>
-          <span class="muted" style="font-size:12px;" data-i18n="res_target_temp">Target temp: </span>
+          <span class="muted small" data-i18n="res_target_temp">Target temp: </span>
           <strong id="resTargetTemp">—</strong> °C
         </div>
-        <div id="coolingAlert" style="display:none;color:#ff7a7a;font-weight:600;" data-i18n="alert_cooling_needed">
+        <div class="alert-danger" id="coolingAlert" style="display:none;" data-i18n="alert_cooling_needed">
           ⚠ Cooling needed!
         </div>
       </div>
 
       <!-- ── Heat balance ───────────────────────────────────────────────────── -->
-      <div class="card" style="margin-bottom:16px;">
-        <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_heat_balance">Heat Balance</h2>
-        <div id="hbNoUa" class="muted" style="font-size:12px;display:none;" data-i18n="hb_no_ua">
+      <div class="card mb">
+        <h2 data-i18n="section_heat_balance">Heat Balance</h2>
+        <div id="hbNoUa" class="muted small" style="display:none;" data-i18n="hb_no_ua">
           Save building settings to see wall/roof heat losses.
         </div>
-        <table id="hbTable" style="width:100%;border-collapse:collapse;font-size:13px;display:none;">
+        <table class="table-plain" id="hbTable" style="display:none;">
           <tr>
             <td class="muted" data-i18n="hb_q_pigs">Pig heat production</td>
-            <td style="text-align:right;"><strong id="hbQPigs">—</strong> kW</td>
+            <td class="num"><strong id="hbQPigs">—</strong> kW</td>
           </tr>
           <tr>
             <td class="muted" data-i18n="hb_q_ventilation">Ventilation heat loss</td>
-            <td style="text-align:right;"><strong id="hbQVent">—</strong> kW</td>
+            <td class="num"><strong id="hbQVent">—</strong> kW</td>
           </tr>
           <tr>
             <td class="muted" data-i18n="hb_q_walls">Wall / roof loss</td>
-            <td style="text-align:right;"><strong id="hbQWalls">—</strong> kW</td>
+            <td class="num"><strong id="hbQWalls">—</strong> kW</td>
           </tr>
-          <tr style="border-top:1px solid var(--border);">
+          <tr class="row-total">
             <td class="muted" data-i18n="hb_q_heater">Heating required</td>
-            <td style="text-align:right;"><strong id="hbQHeater">—</strong> kW</td>
+            <td class="num"><strong id="hbQHeater">—</strong> kW</td>
           </tr>
           <tr id="hbDutyRow" style="display:none;">
             <td class="muted" data-i18n="hb_duty_cycle">Heater duty cycle</td>
-            <td style="text-align:right;"><strong id="hbDuty">—</strong></td>
+            <td class="num"><strong id="hbDuty">—</strong></td>
           </tr>
         </table>
-        <div id="hbSelfHeated" style="display:none;color:#4caf50;font-size:13px;margin-top:8px;"
+        <div class="ok-note" id="hbSelfHeated" style="display:none;"
              data-i18n="hb_self_heated">
           ✓ No heating needed — pigs self-heat the house.
         </div>
       </div>
 
       <!-- Gas limits -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="muted" style="font-size:12px;margin-bottom:8px;" data-i18n="gas_limits_title">Gas concentration limits (PIC 2019)</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:13px;">
+      <div class="card mb">
+        <div class="muted small mb-8" data-i18n="gas_limits_title">Gas concentration limits (PIC 2019)</div>
+        <div class="cols cols-120 text-13">
           <div><span class="muted">NH₃</span> &lt; <strong>20 ppm</strong></div>
           <div><span class="muted">CO₂</span> &lt; <strong>3 000 ppm</strong></div>
           <div><span class="muted">CO</span>  &lt; <strong>30 ppm</strong></div>
@@ -173,42 +173,42 @@
       </div>
 
       <!-- Humidity reminder -->
-      <div class="card" style="margin-bottom:16px;border-left:3px solid var(--accent);">
-        <span class="muted" style="font-size:12px;" data-i18n="rh_reminder">Relative humidity must not exceed </span>
+      <div class="card mb note-accent">
+        <span class="muted small" data-i18n="rh_reminder">Relative humidity must not exceed </span>
         <strong>65%</strong>
-        <span class="muted" style="font-size:12px;" data-i18n="rh_reminder2"> — increase ventilation if exceeded and T_outside &lt; setpoint</span>
+        <span class="muted small" data-i18n="rh_reminder2"> — increase ventilation if exceeded and T_outside &lt; setpoint</span>
       </div>
 
     </div>
 
     <!-- ── 3. Building settings ─────────────────────────────────────────────── -->
-    <div class="card" style="margin-bottom:16px;">
-      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_building">Building Settings</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+    <div class="card mb">
+      <h2 data-i18n="section_building">Building Settings</h2>
+      <div class="cols cols-150">
 
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_length">Length, m</span>
-          <input id="bldLength" type="number" min="10" max="500" step="1" value="100"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_length">Length, m</span>
+          <input class="field" id="bldLength" type="number" min="10" max="500" step="1" value="100"
+                 />
         </label>
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_width">Width, m</span>
-          <input id="bldWidth" type="number" min="5" max="50" step="1" value="20"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_width">Width, m</span>
+          <input class="field" id="bldWidth" type="number" min="5" max="50" step="1" value="20"
+                 />
         </label>
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_height">Height, m</span>
-          <input id="bldHeight" type="number" min="1" max="10" step="0.1" value="2.4"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_height">Height, m</span>
+          <input class="field" id="bldHeight" type="number" min="1" max="10" step="0.1" value="2.4"
+                 />
         </label>
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_heater_power">Heater power, kW</span>
-          <input id="heaterPower" type="number" min="0" max="2000" step="10" value="200"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_heater_power">Heater power, kW</span>
+          <input class="field" id="heaterPower" type="number" min="0" max="2000" step="10" value="200"
+                 />
         </label>
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_heater_type">Heater type</span>
-          <select id="heaterType" style="width:100%;margin-top:4px;">
+          <span class="muted small" data-i18n="label_heater_type">Heater type</span>
+          <select class="field" id="heaterType">
             <option value="gas"      data-i18n="heater_gas">Gas</option>
             <option value="electric" data-i18n="heater_electric">Electric</option>
           </select>
@@ -217,61 +217,61 @@
       </div>
 
       <!-- Calculated volume / floor area display -->
-      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--muted,#888);">
+      <div class="row-meta">
         <span data-i18n="label_volume">Volume:</span>
         <strong id="calcVolume">—</strong> m³ &nbsp;·&nbsp;
         <span data-i18n="label_floor_area_calc">Floor:</span>
         <strong id="calcFloor">—</strong> m²
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+      <div class="row-actions">
         <button id="saveSettingsBtn" class="btn btn-secondary" data-i18n="btn_save_settings">Save settings</button>
-        <span id="settingsSavedMsg" style="display:none;color:#4caf50;font-size:12px;" data-i18n="settings_saved">✓ Saved!</span>
+        <span class="ok-small" id="settingsSavedMsg" style="display:none;" data-i18n="settings_saved">✓ Saved!</span>
       </div>
     </div>
 
     <!-- ── 4. Stocking density ──────────────────────────────────────────────── -->
-    <div class="card" style="margin-bottom:16px;">
-      <h2 style="margin:0 0 12px;font-size:16px;" data-i18n="section_stocking">Stocking Density Check</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div class="card mb">
+      <h2 data-i18n="section_stocking">Stocking Density Check</h2>
+      <div class="cols cols-180">
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_floor_area">Usable floor area, m²</span>
-          <input id="floorArea" type="number" min="10" max="5000" step="10" value="800"
-                 style="width:100%;margin-top:4px;" />
+          <span class="muted small" data-i18n="label_floor_area">Usable floor area, m²</span>
+          <input class="field" id="floorArea" type="number" min="10" max="5000" step="10" value="800"
+                 />
         </label>
         <label>
-          <span class="muted" style="font-size:12px;" data-i18n="label_floor_type">Floor type</span>
-          <select id="floorType" style="width:100%;margin-top:4px;">
+          <span class="muted small" data-i18n="label_floor_type">Floor type</span>
+          <select class="field" id="floorType">
             <option value="slatted" data-i18n="floor_slatted">Slatted</option>
             <option value="solid"   data-i18n="floor_solid">Solid</option>
           </select>
         </label>
       </div>
-      <button id="stockingBtn" class="btn btn-secondary" style="margin-top:14px;" data-i18n="btn_check_stocking">
+      <button id="stockingBtn" class="btn btn-secondary mt-14" data-i18n="btn_check_stocking">
         Check stocking density
       </button>
 
-      <div id="stockingResult" style="margin-top:12px;display:none;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <div class="mt-12" id="stockingResult" style="display:none;">
+        <table class="table-plain">
           <tr><td class="muted" data-i18n="stk_recommended">Recommended m²/head</td>
-              <td style="text-align:right;" id="stkRecommended">—</td></tr>
+              <td class="num" id="stkRecommended">—</td></tr>
           <tr><td class="muted" data-i18n="stk_actual">Actual m²/head</td>
-              <td style="text-align:right;" id="stkActual">—</td></tr>
+              <td class="num" id="stkActual">—</td></tr>
           <tr><td class="muted" data-i18n="stk_max_pigs">Max pigs (PIC norm)</td>
-              <td style="text-align:right;" id="stkMax">—</td></tr>
+              <td class="num" id="stkMax">—</td></tr>
           <tr><td class="muted" data-i18n="stk_utilization">Utilization</td>
-              <td style="text-align:right;" id="stkUtil">—</td></tr>
-          <tr><td colspan="2" id="stkStatus" style="padding-top:8px;font-weight:600;"></td></tr>
+              <td class="num" id="stkUtil">—</td></tr>
+          <tr><td class="row-strong" colspan="2" id="stkStatus"></td></tr>
         </table>
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="text-align:center;color:var(--muted,#888);font-size:11px;padding:12px 0;">
+    <div class="page-footer">
       <span data-i18n="footer_disclaimer">Reference tool only. Verify all setpoints with your breed guide and veterinary advisor.</span>
       <br>
       <span data-i18n="footer_see_also">Also see:</span>
-      <a href="https://github.com/MikeVances/MINMAXapp" target="_blank" style="color:inherit;">MINMAXapp</a>
+      <a class="link-plain" href="https://github.com/MikeVances/MINMAXapp" target="_blank">MINMAXapp</a>
       — <span data-i18n="footer_related_broiler">Broiler house ventilation calculator</span>
     </div>
 

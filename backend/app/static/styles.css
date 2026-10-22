@@ -58,3 +58,52 @@ input[type="number"], input[type="text"], select, textarea { font-size: 16px; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 1000; }
 .modal.hidden { display: none; }
 .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: min(420px, 90vw); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+
+/* ─── Вынесено из встроенных стилей index.html (этап 8.2) ─────────────────── */
+/* display:none во встроенных стилях оставлен намеренно: это состояние, которым
+   управляет скрипт (el.style.display = '' / 'none'). Перенос в класс сломал бы
+   показ — сброс встроенного стиля не отменяет display:none из класса */
+.small { font-size: 12px; }
+.unit { font-size: 11px; }
+.text-13 { font-size: 13px; }
+.field { width: 100%; margin-top: 4px; }
+.full { width: 100%; }
+.num { text-align: right; }
+.center { text-align: center; }
+.m0 { margin: 0; }
+.mb { margin-bottom: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mt-6 { margin-top: 6px; }
+.mt-12 { margin-top: 12px; }
+.mt-14 { margin-top: 14px; }
+.cols { display: grid; gap: 12px; }
+.cols-180 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.cols-160 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.cols-150 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.cols-120 { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.page-footer { text-align: center; color: var(--muted); font-size: 11px; padding: 12px 0; }
+.stat-label { font-size: 11px; margin-bottom: 4px; }
+.stat-value { font-size: 24px; font-weight: 700; }
+.stat-value-main { font-size: 28px; font-weight: 700; color: var(--accent); }
+.badge-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.note-accent { border-left: 3px solid var(--accent); }
+.table-plain { width: 100%; border-collapse: collapse; font-size: 13px; }
+.row-total { border-top: 1px solid var(--border); }
+.row-strong { padding-top: 8px; font-weight: 600; }
+.row-actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.row-meta { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.warn-list { margin: 8px 0 0 18px; padding: 0; color: #ffb74d; }
+.alert-danger { color: #ff7a7a; font-weight: 600; }
+.ok-note { color: #4caf50; font-size: 13px; margin-top: 8px; }
+.ok-small { color: #4caf50; font-size: 12px; }
+.link-plain { color: inherit; }
+
+/* Обратная связь (feedback.js) */
+.feedback-trigger { position: fixed; bottom: 12px; right: 8px; z-index: 9998; font-size: 11px; padding: 4px 9px; }
+.feedback-card { width: min(480px, 92vw); }
+.feedback-title { margin: 0 0 10px; }
+.feedback-text { width: 100%; box-sizing: border-box; resize: vertical; background: #1e1e1e; color: inherit;
+                 border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 14px; font-family: inherit; }
+.feedback-status { min-height: 18px; font-size: 12px; margin-top: 6px; }
+.feedback-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }

@@ -5,12 +5,10 @@
 
     // ── Кнопка ───────────────────────────────────────────────────────────────
     const btn = document.createElement('button');
-    btn.className     = 'btn btn-secondary';
+    btn.className     = 'btn btn-secondary feedback-trigger';
     btn.id            = 'feedbackTrigger';
     btn.dataset.i18n  = 'feedback_btn';
     btn.textContent   = '💬';
-    btn.style.cssText =
-      'position:fixed;bottom:12px;right:8px;z-index:9998;font-size:11px;padding:4px 9px;';
     document.body.appendChild(btn);
 
     // ── Модальное окно ────────────────────────────────────────────────────────
@@ -18,17 +16,14 @@
     modal.id        = 'feedbackModal';
     modal.className = 'modal hidden';
     modal.innerHTML = `
-      <div class="modal-card" style="width:min(480px,92vw);">
-        <h3 style="margin:0 0 10px;" data-i18n="feedback_title">Send Feedback</h3>
+      <div class="modal-card feedback-card">
+        <h3 class="feedback-title" data-i18n="feedback_title">Send Feedback</h3>
         <textarea id="feedbackText"
           rows="5"
-          style="width:100%;box-sizing:border-box;resize:vertical;
-                 background:var(--input-bg,#1e1e1e);color:inherit;
-                 border:1px solid var(--border);border-radius:6px;
-                 padding:8px;font-size:14px;font-family:inherit;"
+          class="feedback-text"
           data-i18n-placeholder="feedback_placeholder"></textarea>
-        <div id="feedbackStatus" style="min-height:18px;font-size:12px;margin-top:6px;"></div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+        <div id="feedbackStatus" class="feedback-status"></div>
+        <div class="feedback-actions">
           <button id="feedbackCancel" class="btn btn-secondary" data-i18n="feedback_cancel">Cancel</button>
           <button id="feedbackSend"   class="btn"               data-i18n="feedback_send">Send</button>
         </div>
