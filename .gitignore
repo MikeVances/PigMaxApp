@@ -35,3 +35,6 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Справочные PDF производителей и норм: перераспространять нельзя, каталог — docs/sources.md
+refs/
