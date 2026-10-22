@@ -843,7 +843,7 @@ components:
 
     GeneticsSummary:
       type: object
-      required: [id, name, source_id, setpoint_meaning, has_growth_curve, has_ventilation_norm, nursery_max_kg]
+      required: [id, name, source_id, setpoint_meaning, has_growth_curve, has_ventilation_norm, nursery_max_kg, builtin]
       properties:
         id: { type: string }
         name: { type: string }
@@ -852,6 +852,7 @@ components:
         has_growth_curve: { type: boolean }
         has_ventilation_norm: { type: boolean }
         nursery_max_kg: { type: number }
+        builtin: { type: boolean, description: "true — из руководства селекционера; false — свой профиль пользователя (source_id user_profile)" }
 
     Curve:
       type: array
@@ -869,7 +870,7 @@ components:
 
     GeneticsProfile:
       type: object
-      required: [id, name, source_id, citation, setpoint_meaning, nursery_max_kg, nursery, finisher, assumptions]
+      required: [id, name, source_id, citation, setpoint_meaning, nursery_max_kg, nursery, finisher, assumptions, builtin]
       properties:
         id: { type: string }
         name: { type: string }
@@ -877,6 +878,7 @@ components:
         citation: { type: string }
         setpoint_meaning: { type: string, enum: [room_temperature, ventilation_start] }
         nursery_max_kg: { type: number }
+        builtin: { type: boolean }
         nursery: { $ref: "#/components/schemas/PhaseCurves" }
         finisher: { $ref: "#/components/schemas/PhaseCurves" }
         growth_by_day: { $ref: "#/components/schemas/Curve" }

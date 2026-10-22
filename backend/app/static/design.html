@@ -26,6 +26,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="project" data-i18n="tab_project">Finishing house project</button>
       <button class="tab" data-tab="sows" data-i18n="tab_sows">Sow room</button>
+      <button class="tab" data-tab="profiles" data-i18n="tab_profiles">Genetics profiles</button>
     </div>
 
     <!-- ── Проект откорма ───────────────────────────────────────────────────── -->
@@ -165,9 +166,61 @@
       </div>
     </section>
 
+    <!-- ── Редактор профилей генетики ──────────────────────────────────────── -->
+    <section id="tab-profiles" style="display:none;">
+      <div class="card mb">
+        <h2 data-i18n="tab_profiles">Genetics profiles</h2>
+        <p class="muted small mb-8" data-i18n="p_intro">Profiles from breeder manuals are read-only: load one, change it and save it under your own id.</p>
+        <div class="row-actions">
+          <select id="pCopyFrom" class="field"></select>
+          <button id="pLoad" class="btn btn-secondary" data-i18n="p_load">Load</button>
+        </div>
+        <div class="cols cols-150 mt-14">
+          <label><span class="muted small" data-i18n="p_id">Id (latin, digits, _)</span><input id="pId" class="field" type="text" /></label>
+          <label><span class="muted small" data-i18n="p_name">Name</span><input id="pName" class="field" type="text" /></label>
+          <label><span class="muted small" data-i18n="p_meaning">Setpoint means</span>
+            <select id="pMeaning" class="field">
+              <option value="room_temperature" data-i18n="opt_room_temperature">Room temperature</option>
+              <option value="ventilation_start" data-i18n="opt_ventilation_start">Ventilation start</option>
+            </select>
+          </label>
+          <label><span class="muted small" data-i18n="p_nursery_max">Nursery up to, kg</span><input id="pNurseryMax" class="field" type="number" value="25" /></label>
+          <label><span class="muted small" data-i18n="p_rh_max">RH limit, %</span><input id="pRhMax" class="field" type="number" /></label>
+          <label><span class="muted small" data-i18n="p_source">Source</span><input id="pSource" class="field" type="text" /></label>
+        </div>
+      </div>
+
+      <div class="card mb">
+        <p class="muted small mb-8" data-i18n="p_points_hint">One point per line: weight (or day) and value separated by a space or tab — pasting from a spreadsheet works.</p>
+        <h3 data-i18n="p_nursery">Nursery</h3>
+        <div class="cols cols-180">
+          <label><span class="muted small" data-i18n="p_temp">Setpoint, kg °C</span><textarea id="pNurTemp" class="points mt-6"></textarea></label>
+          <label><span class="muted small" data-i18n="p_vent">Min ventilation, kg m³/h</span><textarea id="pNurVent" class="points mt-6"></textarea></label>
+          <label><span class="muted small" data-i18n="p_rh">RH, kg %</span><textarea id="pNurRh" class="points mt-6"></textarea></label>
+        </div>
+        <h3 class="mt-14" data-i18n="p_finisher">Finisher (empty — same as nursery)</h3>
+        <div class="cols cols-180">
+          <label><span class="muted small" data-i18n="p_temp">Setpoint, kg °C</span><textarea id="pFinTemp" class="points mt-6"></textarea></label>
+          <label><span class="muted small" data-i18n="p_vent">Min ventilation, kg m³/h</span><textarea id="pFinVent" class="points mt-6"></textarea></label>
+          <label><span class="muted small" data-i18n="p_rh">RH, kg %</span><textarea id="pFinRh" class="points mt-6"></textarea></label>
+        </div>
+        <h3 class="mt-14" data-i18n="p_growth">Growth curve</h3>
+        <div class="cols cols-180">
+          <label><span class="muted small" data-i18n="p_growth_points">Day after weaning, kg</span><textarea id="pGrowth" class="points mt-6"></textarea></label>
+        </div>
+        <div class="row-actions">
+          <button id="pSave" class="btn" data-i18n="p_save">Save profile</button>
+          <button id="pDelete" class="btn btn-secondary" data-i18n="p_delete">Delete</button>
+          <span id="pDone" class="ok-note" style="display:none;"></span>
+        </div>
+        <div id="pError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+    </section>
+
     <div class="page-footer" data-i18n="footer_disclaimer"></div>
   </main>
   <script src="./design.js"></script>
+  <script src="./profiles.js"></script>
   <script src="./feedback.js"></script>
 </body>
 </html>

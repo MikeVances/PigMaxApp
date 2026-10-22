@@ -181,7 +181,7 @@ class MaxVentRequest(BaseModel):
     def _check(self):
         if self.group == "gestating_sow" and self.pregnancy_day is None:
             raise ValueError("pregnancy_day is required for gestating_sow")
-        if self.genetics is not None and self.genetics not in genetics_mod.PROFILES:
+        if self.genetics is not None and genetics_mod.find(self.genetics) is None:
             raise ValueError(f"unknown genetics profile: {self.genetics}")
         return self
 

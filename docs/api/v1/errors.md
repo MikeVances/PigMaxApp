@@ -97,6 +97,7 @@
 | <a id="heat_stress_weight_extrapolated"></a>`heat_stress_weight_extrapolated` | вес вне 58–74.7 кг опыта Huynh: пороги перенесены как есть; тяжёлые свиньи страдают раньше |
 | <a id="heat_stress_rh_outside_study"></a>`heat_stress_rh_outside_study` | RH вне 50–80 % опыта: наклон потери корма взят по краю |
 | <a id="heat_stress_beyond_study_range"></a>`heat_stress_beyond_study_range` | температура выше 32 °C опыта: потеря корма — линейная экстраполяция |
+| <a id="user_profile"></a>`user_profile` | расчёт по своему профилю генетики: числа ввёл пользователь, `source` — что он указал источником |
 | <a id="summer_target_rd_apk"></a>`summer_target_rd_apk` | летняя цель 26 °C — нижний край «26–28 °C» РД-АПК прим. 3 |
 
 ## Калибровка и инструменты интерфейса
@@ -115,3 +116,17 @@
 | <a id="calibration_implausible"></a>`calibration_implausible` | средний U оболочки по калибровке вне 0.1–8 Вт/(м²·К) |
 | <a id="calibration_method_obsolete"></a>`calibration_method_obsolete` | калибровка не по кривой остывания — нужен новый тест |
 | <a id="calibration_ua_unresolved"></a>`calibration_ua_unresolved` | отметки не различают UA в пределах ±25 % — в расчёт не пускаем, нужен тест дольше или с большей разницей с улицей |
+
+## Редактор профилей генетики
+
+Маршруты интерфейса `PUT` и `DELETE /genetics/{id}` (под `WRITE_TOKEN`), не API v1 —
+коды приходят в `detail` как `{"code", "params"}`. Свои профили видны в
+`listGenetics` / `getGenetics` с `builtin: false`.
+
+| Код | Статус | Смысл |
+|---|---|---|
+| <a id="builtin_profile_read_only"></a>`builtin_profile_read_only` | 403 | профиль из руководства менять и удалять нельзя — сохраните копию под своим id |
+| <a id="profile_id_invalid"></a>`profile_id_invalid` | 422 | id — строчные латинские буквы, цифры и «_», до 64 знаков |
+| <a id="profile_point_out_of_range"></a>`profile_point_out_of_range` | 422 | точка вне физических пределов (`phase`, `curve`, `point`) |
+| <a id="profile_curve_not_increasing"></a>`profile_curve_not_increasing` | 422 | вес в кривой не растёт строго (`phase`, `curve`) |
+| <a id="profile_growth_not_increasing"></a>`profile_growth_not_increasing` | 422 | в кривой роста не растёт строго день или вес (`what`) |

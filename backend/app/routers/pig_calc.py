@@ -71,7 +71,7 @@ class MinVentParams(BaseModel):
 
     @model_validator(mode="after")
     def _known_genetics(self):
-        if self.genetics is not None and self.genetics not in genetics_mod.PROFILES:
+        if self.genetics is not None and genetics_mod.find(self.genetics) is None:
             raise ValueError(f"unknown genetics profile: {self.genetics}")
         return self
 
@@ -142,7 +142,7 @@ class SetpointsRequest(BaseModel):
 
     @model_validator(mode="after")
     def _check(self):
-        if self.genetics not in genetics_mod.PROFILES:
+        if genetics_mod.find(self.genetics) is None:
             raise ValueError(f"unknown genetics profile: {self.genetics}")
         if (self.weight_kg is None) == (self.day is None):
             raise ValueError("pass exactly one of weight_kg or day")
@@ -326,8 +326,8 @@ def list_genetics():
         "setpoint_meaning": p.setpoint_meaning,
         "has_growth_curve": p.growth is not None,
         "has_ventilation_norm": any(c.min_vent_by_weight for c in (p.nursery, p.finisher)),
-        "nursery_max_kg": p.nursery_max_kg,
-    } for p in genetics_mod.PROFILES.values()]
+        "nursery_max_kg": p.nursery_max_kg, "builtin": p.builtin,
+    } for p in genetics_mod.all_profiles()]
 
 
 @router.post("/calc/setpoints")

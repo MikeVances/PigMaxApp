@@ -28,6 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
+from .errors import CalcError
 from .pig_profile import PIC_TABLE_41
 
 SetpointMeaning = Literal["room_temperature", "ventilation_start"]
@@ -65,6 +66,7 @@ class GeneticsProfile:
     rh_max_pct: Optional[float]               # общий предел RH, если нет кривой
     assumptions: tuple[dict, ...] = field(default_factory=tuple)
     nursery_max_kg: float = DEFAULT_NURSERY_MAX_KG
+    builtin: bool = True                      # из руководства (код) или свой (genetics_store)
 
 
 def _lerp(x: float, curve: Curve) -> float:
@@ -215,6 +217,18 @@ PROFILES: dict[str, GeneticsProfile] = {p.id: p for p in
                                         (PIC_2019, HYPOR_2023, KLIMAATPLATFORM_2021, DANBRED, RD_APK_2012)}
 
 
+def find(profile_id: str) -> Optional[GeneticsProfile]:
+    """Профиль по id: встроенный, затем свой. Встроенный id своим не перекрыть (save)."""
+    from . import genetics_store
+    return PROFILES.get(profile_id) or genetics_store.load(profile_id)
+
+
+def all_profiles() -> list[GeneticsProfile]:
+    """Встроенные, затем свои — порядок списка в интерфейсе и API."""
+    from . import genetics_store
+    return list(PROFILES.values()) + genetics_store.list_custom()
+
+
 # ─── Запрос уставок ───────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
@@ -241,7 +255,10 @@ def weight_at_day(profile: GeneticsProfile, day: float) -> float:
 
 def setpoints(profile_id: str, weight_kg: Optional[float] = None, day: Optional[float] = None,
               phase: Optional[Phase] = None) -> Setpoints:
-    profile = PROFILES[profile_id]
+    profile = find(profile_id)
+    if profile is None:
+        # Свой профиль могли удалить между проверкой запроса и расчётом
+        raise CalcError("genetics_not_found", id=profile_id)
     assumptions = list(profile.assumptions)
     warnings: list[dict] = []
 

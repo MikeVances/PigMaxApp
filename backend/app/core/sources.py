@@ -266,6 +266,16 @@ _SOURCES: tuple[Source, ...] = (
         limits="Эмпирика по поведению, без зависимости от веса и RH; совпадает с таблицей Hubbard Feeds, первоисточник McFarlane не прочитан.",
     ),
     Source(
+        id="user_profile", kind="unverified",
+        citation="Профиль пользователя (редактор профилей генетики)",
+        title="Свой профиль генетики", publisher="пользователь калькулятора", year=None,
+        locator="поле source профиля — в assumptions ответа (код user_profile)",
+        applies_to="уставки, нормы и кривая роста по своему профилю",
+        statement="Числа введены пользователем; калькулятор проверяет только порядок точек и физические пределы.",
+        how_used="Как у встроенных профилей: интерполяция по весу, кривая роста — день ↔ вес.",
+        limits="Происхождение чисел не проверено — источник указывает сам пользователь.",
+    ),
+    Source(
         id="huynh_2005", kind="research",
         citation="Huynh T.T.T. et al. 2005, J Anim Sci 83:1385–1396 (PMID 15890816)",
         title="Effects of increasing temperatures on physiological changes in pigs at different relative humidities",

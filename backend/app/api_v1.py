@@ -284,6 +284,9 @@ def _app_version() -> str:
 # ─── Справочники ──────────────────────────────────────────────────────────────
 
 _CATALOG_CACHE = {"Cache-Control": "public, max-age=3600"}
+# Генетика меняется редактором профилей: час кеша показал бы удалённый профиль
+# или скрыл новый — пусть клиент перепроверяет каждый раз
+_GENETICS_CACHE = {"Cache-Control": "no-cache"}
 
 
 @api.get("/construction-materials")
@@ -334,8 +337,8 @@ def list_genetics() -> JSONResponse:
         "id": p.id, "name": p.name, "source_id": p.source_id, "setpoint_meaning": p.setpoint_meaning,
         "has_growth_curve": p.growth is not None,
         "has_ventilation_norm": any(c.min_vent_by_weight for c in (p.nursery, p.finisher)),
-        "nursery_max_kg": p.nursery_max_kg,
-    } for p in genetics_mod.PROFILES.values()]}, headers=_CATALOG_CACHE)
+        "nursery_max_kg": p.nursery_max_kg, "builtin": p.builtin,
+    } for p in genetics_mod.all_profiles()]}, headers=_GENETICS_CACHE)
 
 
 @api.get("/genetics/{profile_id}")
@@ -344,10 +347,14 @@ def get_genetics(profile_id: str = Path(..., pattern=PROFILE_ID_PATTERN)) -> JSO
     Профиль по точкам источника: уставка, нормы и RH по весу для каждой фазы и кривая
     роста. Агенту уставка нужна и без расчёта корпуса («какая температура при 60 кг»).
     """
-    p = genetics_mod.PROFILES.get(profile_id)
+    p = genetics_mod.find(profile_id)
     if p is None:
         raise CalcError("genetics_not_found", id=profile_id)
+    return JSONResponse(genetics_body(p), headers=_GENETICS_CACHE)
 
+
+def genetics_body(p: genetics_mod.GeneticsProfile) -> dict[str, Any]:
+    """Тело профиля — общее для API v1 и интерфейса (редактор профилей): формат PUT тот же."""
     def phase(c: genetics_mod.PhaseCurves) -> dict:
         out: dict[str, Any] = {"temp_by_weight": [list(x) for x in c.temp_by_weight]}
         for name in ("min_vent_by_weight", "max_vent_by_weight", "rh_by_weight"):
@@ -358,7 +365,7 @@ def get_genetics(profile_id: str = Path(..., pattern=PROFILE_ID_PATTERN)) -> JSO
 
     body: dict[str, Any] = {
         "id": p.id, "name": p.name, "source_id": p.source_id, "citation": sources.citation(p.source_id),
-        "setpoint_meaning": p.setpoint_meaning, "nursery_max_kg": p.nursery_max_kg,
+        "setpoint_meaning": p.setpoint_meaning, "nursery_max_kg": p.nursery_max_kg, "builtin": p.builtin,
         "nursery": phase(p.nursery), "finisher": phase(p.finisher),
         "assumptions": list(p.assumptions),
     }
@@ -366,7 +373,7 @@ def get_genetics(profile_id: str = Path(..., pattern=PROFILE_ID_PATTERN)) -> JSO
         body["growth_by_day"] = [list(x) for x in p.growth]
     if p.rh_max_pct is not None:
         body["rh_max_pct"] = p.rh_max_pct
-    return JSONResponse(body, headers=_CATALOG_CACHE)
+    return body
 
 
 @api.get("/sow-profiles")
@@ -541,7 +548,7 @@ def _ua(house, envelope: Optional[EnvelopeIn]) -> tuple[Optional[float], Optiona
 
 
 def _require_profiles(genetics: Optional[str], sow_profile: Optional[str]) -> None:
-    if genetics is not None and genetics not in genetics_mod.PROFILES:
+    if genetics is not None and genetics_mod.find(genetics) is None:
         raise CalcError("genetics_not_found", id=genetics)
     if sow_profile is not None and sow_profile not in sow_climate.SOW_PROFILES:
         raise CalcError("sow_profile_not_found", id=sow_profile)

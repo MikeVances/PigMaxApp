@@ -12,15 +12,25 @@
   // ── Вкладки ────────────────────────────────────────────────────────────────
   document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
-    $('tab-project').style.display = btn.dataset.tab === 'project' ? '' : 'none';
-    $('tab-sows').style.display    = btn.dataset.tab === 'sows'    ? '' : 'none';
+    document.querySelectorAll('.tab').forEach(b => {
+      $('tab-' + b.dataset.tab).style.display = b === btn ? '' : 'none';
+    });
   }));
 
   // ── Справочники ────────────────────────────────────────────────────────────
   // Проект идёт по кривой роста — в списке только профили, у которых она есть
-  fetch('./genetics').then(r => r.json()).then(list => {
-    list.filter(p => p.has_growth_curve).forEach(p => $('dGenetics').add(new Option(p.name, p.id)));
-  }).catch(() => {});
+  // Список очищается перед заполнением: редактор профилей просит перечитать его
+  // после записи (событие geneticschange), и без очистки профили задвоились бы
+  function loadGenetics() {
+    fetch('./genetics').then(r => r.json()).then(list => {
+      const dg = $('dGenetics'), keep = dg.value;
+      dg.innerHTML = '';
+      list.filter(p => p.has_growth_curve).forEach(p => dg.add(new Option(p.name, p.id)));
+      if (keep && list.some(p => p.id === keep && p.has_growth_curve)) dg.value = keep;
+    }).catch(() => {});
+  }
+  loadGenetics();
+  document.addEventListener('geneticschange', loadGenetics);
   fetch('./sow-profiles').then(r => r.json()).then(list => {
     list.forEach(p => $('sProfile').add(new Option(p.name, p.id)));
   }).catch(() => {});

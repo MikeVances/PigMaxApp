@@ -20,6 +20,7 @@ from . import construction as C
 from . import evap_cooling_calc as E
 from . import genetics as genetics_mod
 from . import tunnel_design as T
+from .errors import CalcError
 from .building_thermal import calculate_heat_balance
 from .house_checks import Airtightness, airtightness_q4, coldest_surface, condensation
 from .max_ventilation import DEFAULT_RISE_C, max_ventilation
@@ -108,7 +109,9 @@ def _day_grid(start: float, end: float, step: int) -> list[float]:
 
 
 def design(inp: DesignInput) -> Design:
-    profile = genetics_mod.PROFILES[inp.genetics]
+    profile = genetics_mod.find(inp.genetics)
+    if profile is None:
+        raise CalcError("genetics_not_found", id=inp.genetics)
     if profile.growth is None:
         raise ValueError(f"profile {inp.genetics} has no growth curve — the design runs by days")
     if inp.end_day <= inp.start_day:

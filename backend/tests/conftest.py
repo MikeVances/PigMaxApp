@@ -23,6 +23,9 @@ os.environ["PIG_SETTINGS_JSON"] = str(SETTINGS_FILE)
 for _var in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WRITE_TOKEN", "API_KEYS"):
     os.environ[_var] = ""
 
+# Свои профили генетики — во временный каталог: тест редактора не пишет в рабочий
+os.environ["PIG_GENETICS_DIR"] = str(_DATA_DIR / "genetics_profiles")
+
 # Журнал вызовов API v1 — во временный каталог, рабочий backend/data/ не трогаем
 os.environ["API_AUDIT_LOG"] = str(_DATA_DIR / "api_audit.jsonl")
 
