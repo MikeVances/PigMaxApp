@@ -2,20 +2,64 @@
 pig_calc.py — Main calculation endpoints for PigMaxApp.
 """
 
-from fastapi import APIRouter, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from ..core.pig_profile import interpolate_by_weight
+from ..core.pig_profile import TABLE_MAX_KG, TABLE_MIN_KG, interpolate_by_weight
 from ..core.pig_thermal  import analyze_heat_balance, pig_heat_w
 from ..core.pig_stocking import stocking_check
 
 router = APIRouter()
 
 
+# ─── Предельные концентрации газов ────────────────────────────────────────────
+# PIC Wean to Finish Guidelines 2019, с. 4-10 (англ. оригинал): «NH3 <20ppm,
+# CO2 <3,000ppm, CO <30ppm, H2S <5ppm». В русском переводе (стр. 22) те же числа
+# ошибочно подписаны «мг/м³» — отсюда была ошибка единиц (docs/sources.md, 2.1).
+GAS_LIMITS_PPM = {"nh3": 20, "co2": 3000, "co": 30, "h2s": 5}
+
+# Молярные массы, г/моль — для пересчёта ppm → мг/м³
+_MOLAR_MASS = {"nh3": 17.031, "co2": 44.01, "co": 28.01, "h2s": 34.08}
+
+# Молярный объём идеального газа при 20 °C и 101.325 кПа, л/моль. Нормы
+# по рабочей зоне пересчитывают при 20 °C, а не при 0 °C (22.41)
+_MOLAR_VOLUME_20C = 24.04
+
+
+def gas_limits() -> dict:
+    """Пределы PIC в ppm и те же пределы в мг/м³ при 20 °C.
+
+    Отдаём оба представления: российские нормы (РД-АПК 1.10.02.04-12) заданы
+    в мг/м³ и % об., а газоанализаторы на фермах показывают по-разному.
+    """
+    return {
+        "source": "PIC Wean to Finish Guidelines 2019, p. 4-10",
+        "ppm": dict(GAS_LIMITS_PPM),
+        "mg_m3_at_20c": {
+            gas: round(ppm * _MOLAR_MASS[gas] / _MOLAR_VOLUME_20C, 1)
+            for gas, ppm in GAS_LIMITS_PPM.items()
+        },
+    }
+
+
+def weight_warnings(weight_kg: float) -> list[dict]:
+    """Предупреждение, если вес вне таблицы PIC 4.1 и уставки взяты с её края."""
+    if TABLE_MIN_KG <= weight_kg <= TABLE_MAX_KG:
+        return []
+    return [{
+        "code": "weight_outside_table",
+        "params": {"weight_kg": weight_kg, "table_min_kg": TABLE_MIN_KG, "table_max_kg": TABLE_MAX_KG},
+    }]
+
+
 class VentRequest(BaseModel):
     weight_kg:    float = Field(..., gt=0, le=200, description="Average live weight, kg")
     num_pigs:     int   = Field(..., gt=0, description="Number of pigs in house")
     t_outside_c:  float = Field(..., description="Outside temperature, °C")
-    season:       str   = Field("winter", description="'winter' | 'summer'")
+    # Literal, а не str: раньше любая опечатка («Winter», «зима») молча
+    # считалась летом и давала летнюю уставку
+    season:       Literal["winter", "summer"] = Field("winter", description="'winter' | 'summer'")
 
 
 class HeatRequest(BaseModel):
@@ -32,7 +76,7 @@ class StockingRequest(BaseModel):
     weight_kg:      float = Field(..., gt=0)
     num_pigs:       int   = Field(..., gt=0)
     floor_area_m2:  float = Field(..., gt=0)
-    floor_type:     str   = Field("slatted", description="'slatted' | 'solid'")
+    floor_type:     Literal["slatted", "solid"] = Field("slatted", description="'slatted' | 'solid'")
 
 
 @router.post("/calc/ventilation")
@@ -64,13 +108,8 @@ def calc_ventilation(req: VentRequest):
         "pig_heat_total_kw":     round(q_pig_w * req.num_pigs / 1000, 2),
         "cooling_needed":        cooling_needed,
         "rh_limit_pct":          65,   # PIC: humidity must not exceed 65%
-        # Gas limits per PIC guide
-        "gas_limits": {
-            "nh3_mg_m3":  20,
-            "co2_mg_m3":  3000,
-            "co_mg_m3":   30,
-            "h2s_mg_m3":  5,
-        },
+        "gas_limits":            gas_limits(),
+        "warnings":              weight_warnings(req.weight_kg),
     }
 
 
@@ -92,12 +131,11 @@ def calc_heat_balance(req: HeatRequest):
 
     result["target_temp_c"] = sp.target_temp_c
     result["setpoint_used_c"] = sp.target_temp_c
+    result["warnings"] = weight_warnings(req.weight_kg)
     return result
 
 
 @router.post("/calc/stocking")
 def calc_stocking(req: StockingRequest):
     """Stocking density check against PIC Table 5.1."""
-    if req.floor_type not in ("slatted", "solid"):
-        raise HTTPException(status_code=400, detail="floor_type must be 'slatted' or 'solid'")
     return stocking_check(req.num_pigs, req.floor_area_m2, req.weight_kg, req.floor_type)

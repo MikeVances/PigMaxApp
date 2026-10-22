@@ -2,9 +2,10 @@
 pig_settings.py — GET/PUT endpoints for building and heater configuration.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from ..core.pig_settings import PigSettings, BuildingConfig, HeaterConfig, load_settings, save_settings
+from ..write_access import require_write_token
 
 router = APIRouter()
 
@@ -28,7 +29,7 @@ def get_settings():
     }
 
 
-@router.put("/settings")
+@router.put("/settings", dependencies=[Depends(require_write_token)])
 def put_settings(payload: SettingsPayload):
     s = load_settings()
     if payload.building is not None:

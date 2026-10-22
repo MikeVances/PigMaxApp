@@ -137,10 +137,10 @@
       <div class="card" style="margin-bottom:16px;">
         <div class="muted" style="font-size:12px;margin-bottom:8px;" data-i18n="gas_limits_title">Gas concentration limits (PIC 2019)</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;font-size:13px;">
-          <div><span class="muted">NH₃</span> &lt; <strong>20 mg/m³</strong></div>
-          <div><span class="muted">CO₂</span> &lt; <strong>3 000 mg/m³</strong></div>
-          <div><span class="muted">CO</span>  &lt; <strong>30 mg/m³</strong></div>
-          <div><span class="muted">H₂S</span> &lt; <strong>5 mg/m³</strong></div>
+          <div><span class="muted">NH₃</span> &lt; <strong>20 ppm</strong></div>
+          <div><span class="muted">CO₂</span> &lt; <strong>3 000 ppm</strong></div>
+          <div><span class="muted">CO</span>  &lt; <strong>30 ppm</strong></div>
+          <div><span class="muted">H₂S</span> &lt; <strong>5 ppm</strong></div>
         </div>
       </div>
 
@@ -284,6 +284,24 @@
       document.getElementById(id).addEventListener('input', updateVolumeDisplay)
     );
 
+    // Токен записи живёт в localStorage браузера; доступ обёрнут в try/catch —
+    // в приватном окне хранилище бросает исключение
+    function loadWriteToken() {
+      try { return localStorage.getItem('pigmax_write_token') || ''; } catch (_) { return ''; }
+    }
+    function saveWriteToken(token) {
+      try { localStorage.setItem('pigmax_write_token', token); } catch (_) {}
+      writeTokenFallback = token;
+    }
+    let writeTokenFallback = '';
+
+    function putSettings(payload) {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = loadWriteToken() || writeTokenFallback;
+      if (token) headers['X-Write-Token'] = token;
+      return fetch('./settings', { method: 'PUT', headers, body: JSON.stringify(payload) });
+    }
+
     document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
       const payload = {
         building: {
@@ -296,11 +314,15 @@
           heater_type:    document.getElementById('heaterType').value,
         }
       };
-      const r = await fetch('./settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      let r = await putSettings(payload);
+      // 401 write_token_required — на площадке задан WRITE_TOKEN: спрашиваем
+      // токен один раз и повторяем запрос
+      if (r.status === 401) {
+        const token = prompt('Write token');
+        if (!token) return;
+        saveWriteToken(token);
+        r = await putSettings(payload);
+      }
       if (r.ok) {
         currentSettings = await r.json();
         document.getElementById('floorArea').value = currentSettings.building.floor_area_m2;

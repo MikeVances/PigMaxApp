@@ -3,10 +3,20 @@ pig_settings.py — Persistent building and heater configuration (JSON file).
 """
 
 import json
+import logging
+import os
 from pathlib import Path
 from pydantic import BaseModel
 
-_DATA_FILE = Path(__file__).parent.parent.parent / "data" / "pig_settings.json"
+log = logging.getLogger(__name__)
+
+_DEFAULT_DATA_FILE = Path(__file__).parent.parent.parent / "data" / "pig_settings.json"
+
+
+def settings_path() -> Path:
+    # Путь читаем при каждом обращении, а не при импорте: тесты и площадки
+    # подменяют его через PIG_SETTINGS_JSON, и рабочий файл никогда не трогается
+    return Path(os.getenv("PIG_SETTINGS_JSON") or _DEFAULT_DATA_FILE)
 
 
 class BuildingConfig(BaseModel):
@@ -35,14 +45,23 @@ class PigSettings(BaseModel):
 
 
 def load_settings() -> PigSettings:
-    if _DATA_FILE.exists():
+    path = settings_path()
+    if path.exists():
         try:
-            return PigSettings(**json.loads(_DATA_FILE.read_text()))
+            return PigSettings(**json.loads(path.read_text(encoding="utf-8")))
         except Exception:
-            pass
+            # Испорченный файл не должен ронять интерфейс, но и молча
+            # подменяться умолчаниями тоже: иначе расчёт тихо идёт по чужому
+            # корпусу 100×20 м, и никто не узнаёт почему
+            log.warning("pig settings unreadable, using defaults: %s", path, exc_info=True)
     return PigSettings()
 
 
 def save_settings(s: PigSettings) -> None:
-    _DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    _DATA_FILE.write_text(s.model_dump_json(indent=2))
+    path = settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Пишем во временный файл рядом и подменяем: обрыв записи посередине
+    # (рестарт площадки, полный диск) оставляет старый файл целым, а не обрубок
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(s.model_dump_json(indent=2), encoding="utf-8")
+    os.replace(tmp, path)

@@ -42,6 +42,11 @@ PIC_TABLE_41 = [
 
 _WEIGHTS = [r.avg_weight_kg for r in PIC_TABLE_41]
 
+# Границы таблицы: за ними interpolate_by_weight() берёт крайнюю строку,
+# и вызывающий обязан сказать об этом пользователю
+TABLE_MIN_KG = _WEIGHTS[0]
+TABLE_MAX_KG = _WEIGHTS[-1]
+
 
 def _lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t

@@ -16,7 +16,10 @@ class FeedbackPayload(BaseModel):
 def _post_telegram(token: str, chat_id: str, text: str) -> int:
     """Синхронный HTTP POST к Telegram API (запускается в thread pool)."""
     url  = f"https://api.telegram.org/bot{token}/sendMessage"
-    body = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "Markdown"})
+    # Без parse_mode: текст пишет посетитель, и одиночный «_» или «*» в нём
+    # (имена файлов, «CO2_max») ломал разметку — Telegram отвечал 400, а
+    # пользователь видел «доставка не удалась»
+    body = json.dumps({"chat_id": chat_id, "text": text})
     req  = urllib.request.Request(
         url, data=body.encode(), headers={"Content-Type": "application/json"}
     )
@@ -35,9 +38,11 @@ async def send_feedback(payload: FeedbackPayload):
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Empty message")
 
-    text = "📬 *MINMAXapp Feedback*\n"
+    # Название проекта в заголовке: код скопирован из MINMAXapp, и сообщения
+    # приходили с чужим именем — нельзя было понять, из какого приложения отзыв
+    text = "📬 PigMaxApp Feedback\n"
     if payload.page:
-        text += f"📄 Page: `{payload.page}`\n"
+        text += f"📄 Page: {payload.page}\n"
     text += f"\n{payload.message}"
 
     try:

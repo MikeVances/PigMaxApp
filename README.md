@@ -71,6 +71,25 @@ uvicorn app.main:app --reload
 
 Requires Python 3.10+. No database, no external services needed for core functionality.
 
+### Tests
+
+```bash
+pip install pytest httpx
+python -m pytest          # from the repository root
+```
+
+Tests never touch `backend/data/`: settings go to a temporary file via `PIG_SETTINGS_JSON`.
+
+### Environment
+
+| Variable | Purpose |
+|---|---|
+| `WRITE_TOKEN` | If set, `PUT /settings` requires header `X-Write-Token` (the UI asks once). Unset — writes are open |
+| `PIG_SETTINGS_JSON` | Path to the settings file (default `backend/data/pig_settings.json`) |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Feedback form delivery |
+
+References used by the calculator: [`docs/sources.md`](docs/sources.md).
+
 ---
 
 ## Data Sources
