@@ -90,7 +90,8 @@
 | <a id="gas_heater_treated_as_open_flame"></a>`gas_heater_treated_as_open_flame` | газовый отопитель считается открытым пламенем (CO₂ и пар в помещение) |
 | <a id="max_equals_min_in_heating"></a>`max_equals_min_in_heating` | наружная с подъёмом холоднее помещения — режим отопления: максимум равен минимуму, сверх него воздуха не нужно |
 | <a id="airtightness_class_assumed"></a>`airtightness_class_assumed` | герметичность не задана — класс UGA `moderate` (0.65 м² на 1000 м² пола) |
-| <a id="mortality_linear"></a>`mortality_linear` | падёж цикла распределён по дням линейно |
+| <a id="mortality_constant_daily"></a>`mortality_constant_daily` | падёж периода — постоянный суточный темп, к последнему дню выживает ровно (1 − `mortality_pct`); модель MINMAXapp |
+| <a id="heating_safety_margin"></a>`heating_safety_margin` | мощность отопления = пик потребности × (1 + `pct`/100): расчётная зима не абсолютный минимум, горелки стареют |
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
 | <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |
 | <a id="heat_stress_rh_is_limit"></a>`heat_stress_rh_is_limit` | RH в помещении не вводится — тепловой стресс оценён при пределе RH профиля (`rh_pct`): наклон потери корма — сверху |

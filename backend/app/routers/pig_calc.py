@@ -102,7 +102,7 @@ class HeatRequest(BaseModel):
     ua_coefficient:      float | None = None
     building_volume_m3:  float | None = None
     total_heater_kw:     float | None = None
-    heater_type:         Literal["gas", "electric"] = "gas"
+    heater_type:         Literal["gas", "gas_indirect", "electric"] = "gas"
     heat_method:         Method    = "cigr2002"
     feed_level:          FeedLevel = DEFAULT_FEED_LEVEL
     floor_feed:          FloorFeed = "dry_feed_dry_floor"

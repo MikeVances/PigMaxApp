@@ -111,9 +111,11 @@ def test_now_validation(client, animals, code):
 def test_design_days_grid_and_mortality(client):
     j = client.post(DESIGN, json={**DESIGN_REQ, "herd": {**DESIGN_REQ["herd"], "mortality_pct": 3}}).json()
     assert [d["day"] for d in j["days"]] == [30, 60, 90, 120, 150]
-    # Падёж линейно: на последнем дне 1000 · (1 − 0.03) = 970
+    # Постоянный суточный падёж (survival MINMAXapp): на последнем дне ровно 1000 · (1 − 0.03)
     assert j["days"][0]["pigs"] == 1000 and j["days"][-1]["pigs"] == 970
-    assert {"code": "mortality_linear", "params": {"mortality_pct": 3.0}} in j["assumptions"]
+    # День 90 — середина периода 30…150 (121 день): 0.97^(60/120) = 0.98489 → 985
+    assert next(d for d in j["days"] if d["day"] == 90)["pigs"] == round(1000 * 0.97 ** (60 / 120))
+    assert {"code": "mortality_constant_daily", "params": {"mortality_pct": 3.0}} in j["assumptions"]
 
 
 def test_design_day_equals_the_core(client):
@@ -135,7 +137,10 @@ def test_design_equipment_is_the_worst_day(client):
     eq, days = j["equipment"], j["days"]
     assert eq["min_ventilation_capacity_m3h"] == max(d["min_ventilation_m3h"] for d in days)
     assert eq["max_ventilation_capacity_m3h"] == max(d["summer_ventilation_m3h"] for d in days)
-    assert eq["heating_capacity_kw"] == max(d["heating_kw"] for d in days)
+    # Потребность — худший день; мощность к установке — с запасом 15 % (MINMAXapp)
+    assert eq["heating_need_kw"] == max(d["heating_kw"] for d in days)
+    assert eq["heating_capacity_kw"] == round(eq["heating_need_kw"] * 1.15, 1)
+    assert {"code": "heating_safety_margin", "params": {"pct": 15.0}} in j["assumptions"]
     worst = max(days, key=lambda d: d["heating_kw"])
     assert eq["worst_heating_day"] == worst["day"]
 
@@ -190,3 +195,29 @@ def test_now_max_by_heat_or_norm_in_summer(client):
     j = client.post(NOW, json={**NOW_REQ, "conditions": {"t_outside_c": 28, "rh_outside_pct": 50}}).json()
     assert j["max_ventilation"]["basis"] in ("heat", "norm")
     assert j["max_ventilation"]["per_head_m3h"] > j["min_ventilation"]["per_head_m3h"]
+
+
+def test_design_heating_margin_is_a_parameter(client):
+    j = client.post(DESIGN, json={**DESIGN_REQ, "heating_margin_pct": 0}).json()
+    # Мощность к установке округлена до 0.1 кВт (как MINMAXapp), потребность — точнее
+    assert j["equipment"]["heating_capacity_kw"] == round(j["equipment"]["heating_need_kw"], 1)
+
+
+def test_gas_indirect_is_modelled_as_electric(client):
+    # Теплообменник с дымоходом наружу: продуктов сгорания в воздухе корпуса нет —
+    # ответ совпадает с электрическим и без воздуха разбавления горелок
+    base = {**NOW_REQ, "house": {"envelope": {"ua_w_per_k": 600}}}
+    ind = client.post(NOW, json={**base, "heaters": {"power_kw": 300, "type": "gas_indirect"}}).json()
+    el = client.post(NOW, json={**base, "heaters": {"power_kw": 300, "type": "electric"}}).json()
+    gas = client.post(NOW, json={**base, "heaters": {"power_kw": 300, "type": "gas_open"}}).json()
+    assert ind["heating"] == el["heating"] and ind["heating"]["dilution_air_m3h"] == 0
+    assert gas["heating"]["dilution_air_m3h"] > 0
+
+
+def test_design_survival_is_constant_daily_not_linear(client):
+    # Различающая проба: при 3 % линейная и экспоненциальная модели на середине
+    # округляются в одно число (985). При 30 % и 100 000 голов — 85 000 против 83 666
+    herd = {**DESIGN_REQ["herd"], "count": 100_000, "mortality_pct": 30}
+    j = client.post(DESIGN, json={**DESIGN_REQ, "herd": herd}).json()
+    mid = next(d for d in j["days"] if d["day"] == 90)
+    assert mid["pigs"] == round(100_000 * 0.7 ** (60 / 120)) == 83666

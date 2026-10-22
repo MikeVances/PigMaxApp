@@ -84,7 +84,7 @@ class SowRoomRequest(SowSetpointsRequest):
     norm: Literal["profile", "pic", "rd_apk_2012", "none"] = "profile"
     ua_w_per_k: float = Field(0.0, ge=0)
     heater_power_kw: float = Field(0.0, ge=0)
-    heater_type: Literal["gas", "electric"] = "gas"
+    heater_type: Literal["gas", "gas_indirect", "electric"] = "gas"
     creep_heat_w_per_pen: float = Field(0.0, ge=0, le=2000)
     altitude_m: float = Field(0.0, ge=-100, le=4000)
 

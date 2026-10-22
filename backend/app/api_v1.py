@@ -464,7 +464,15 @@ class ModelIn(_Strict):
 
 class HeatersIn(_Strict):
     power_kw: float = Field(0.0, ge=0, le=10_000)
-    type: Literal["gas_open", "electric"] = "gas_open"
+    type: Literal["gas_open", "gas_indirect", "electric"] = "gas_open"
+
+
+def _heater_model_type(h: Optional[HeatersIn]) -> str:
+    # Source: MINMAXapp api_v1.py -> _heater (ADAPT: тип строкой, а не HeaterConfig)
+    # gas_indirect воздух корпуса не загрязняет — для модели это как электрический
+    if h is None:
+        return "gas_open"
+    return "gas_open" if h.type == "gas_open" else "electric"
 
 
 class AnimalsNowIn(_Strict):
@@ -575,7 +583,7 @@ def create_ventilation_requirement(req: RequirementRequest, request: Request) ->
             co2_limit_ppm=m.co2_limit_ppm, co2_outdoor_ppm=m.co2_outdoor_ppm, norm=m.norm, max_norm=m.max_norm,
             rise_c=m.rise_c, altitude_m=h.altitude_m, ua_w_per_k=ua,
             heater_power_kw=req.heaters.power_kw if req.heaters else 0.0,
-            heater_type=req.heaters.type if req.heaters else "gas_open",
+            heater_type=_heater_model_type(req.heaters),
             creep_heat_w_per_pen=req.creep_heat_w_per_pen, floor=h.floor, air_speed_ms=c.air_speed_ms,
             geometry=_geometry(h), envelope=env_obj,
             airtightness=h.airtightness.to_core() if h.airtightness else None))
@@ -661,6 +669,7 @@ class DesignRequest(_Strict):
     pads: Optional[PadsIn] = None
     fan_curve: Optional[FanCurveIn] = None
     summer_target_c: float = Field(pig_design.DEFAULT_SUMMER_TARGET_C, ge=15, le=35)
+    heating_margin_pct: float = Field(pig_design.DEFAULT_HEATING_MARGIN_PCT, ge=0, le=50)
 
 
 def run_design(req: "DesignRequest") -> pig_design.Design:
@@ -681,10 +690,11 @@ def run_design(req: "DesignRequest") -> pig_design.Design:
             method=m.method, feed_level=m.feed_level, floor_feed=m.floor_feed, rh_max_pct=m.rh_max_pct,
             co2_limit_ppm=m.co2_limit_ppm, co2_outdoor_ppm=m.co2_outdoor_ppm, norm=m.norm, max_norm=m.max_norm,
             rise_c=m.rise_c, altitude_m=h.altitude_m,
-            heater_type=req.heaters.type if req.heaters else "gas_open",
+            heater_type=_heater_model_type(req.heaters),
             pads=Pads(req.pads.pad_type, req.pads.thickness_mm) if req.pads else None,
             fan_curve=tuple((pt.pressure_pa, pt.flow_m3h) for pt in req.fan_curve.points) if req.fan_curve else None,
             summer_target_c=req.summer_target_c,
+            heating_margin_pct=req.heating_margin_pct,
             airtightness=h.airtightness.to_core() if h.airtightness else None))
     except (CalcError, MethodNotApplicable):
         raise

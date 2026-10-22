@@ -18,7 +18,9 @@ from .pig_heat import DEFAULT_FEED_LEVEL, pig_heat
 # Тип отопителя в настройках PigMaxApp — «gas» или «electric», без различия
 # открытого пламени и закрытой камеры. Газовый считаем открытым пламенем: его CO₂
 # и пар идут в помещение и требуют воздуха — в безопасную сторону для Qmin и загрузки
-HEATER_TYPE_MAP = {"gas": "gas_open", "electric": "electric", "gas_open": "gas_open"}
+# gas_indirect (теплообменник, дымоход наружу) воздух корпуса не загрязняет —
+# для модели это как электрический (MINMAXapp api_v1 _heater)
+HEATER_TYPE_MAP = {"gas": "gas_open", "electric": "electric", "gas_open": "gas_open", "gas_indirect": "electric"}
 
 
 def analyze_heat_balance(

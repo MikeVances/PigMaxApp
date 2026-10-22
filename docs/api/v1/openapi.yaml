@@ -507,7 +507,7 @@ components:
       type: object
       properties:
         power_kw: { type: number, minimum: 0, maximum: 10000, default: 0 }
-        type: { type: string, enum: [gas_open, electric], default: gas_open }
+        type: { type: string, enum: [gas_open, gas_indirect, electric], default: gas_open, description: "gas_indirect — с теплообменником и дымоходом наружу: воздух корпуса не загрязняет, для модели как electric" }
 
     # ── Сценарий «сейчас» ─────────────────────────────────────────────────────
     RequirementRequest:
@@ -728,6 +728,7 @@ components:
                   pressure_pa: { type: number, minimum: 0, maximum: 500 }
                   flow_m3h: { type: number, exclusiveMinimum: 0, maximum: 200000 }
         summer_target_c: { type: number, minimum: 15, maximum: 35, default: 26, description: "Летняя верхняя граница комфорта (РД-АПК прим. 3: 26–28)" }
+        heating_margin_pct: { type: number, minimum: 0, maximum: 50, default: 15, description: "Запас мощности отопления к пику, %" }
 
     DesignDay:
       type: object
@@ -752,12 +753,13 @@ components:
 
     Equipment:
       type: object
-      required: [min_ventilation_capacity_m3h, max_ventilation_capacity_m3h, heating_capacity_kw, worst_heating_day,
+      required: [min_ventilation_capacity_m3h, max_ventilation_capacity_m3h, heating_need_kw, heating_capacity_kw, worst_heating_day,
                  worst_summer_day, section_m2, section_speed_at_max_ms, summer_air_c, speed_to_summer_target_ms, heat_stress]
       properties:
         min_ventilation_capacity_m3h: { type: number }
         max_ventilation_capacity_m3h: { type: number }
-        heating_capacity_kw: { type: number }
+        heating_need_kw: { type: number, description: "Пиковая потребность в отоплении без запаса" }
+        heating_capacity_kw: { type: number, description: "Мощность к установке: потребность × (1 + heating_margin_pct/100)" }
         worst_heating_day: { type: number }
         worst_summer_day: { type: number }
         section_m2: { type: number }

@@ -61,6 +61,7 @@
           <label><span class="muted small" data-i18n="d_end_day">End, day after weaning</span><input id="dEnd" class="field" type="number" value="150" /></label>
           <label><span class="muted small" data-i18n="d_step">Step, days</span><input id="dStep" class="field" type="number" value="14" /></label>
           <label><span class="muted small" data-i18n="d_mortality">Mortality, %</span><input id="dMortality" class="field" type="number" step="0.5" value="3" /></label>
+          <label><span class="muted small" data-i18n="d_margin">Heating margin, %</span><input id="dMargin" class="field" type="number" step="1" value="15" /></label>
         </div>
       </div>
 
@@ -89,6 +90,7 @@
           <table class="table-plain">
             <tr><td class="muted" data-i18n="d_eq_min">Minimum ventilation capacity, m³/h</td><td class="num"><strong id="eqMin">—</strong></td></tr>
             <tr><td class="muted" data-i18n="d_eq_max">Maximum ventilation capacity, m³/h</td><td class="num"><strong id="eqMax">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_heat_need">Peak heating need, kW</td><td class="num"><strong id="eqHeatNeed">—</strong></td></tr>
             <tr><td class="muted" data-i18n="d_eq_heat">Heating capacity, kW</td><td class="num"><strong id="eqHeat">—</strong></td></tr>
             <tr><td class="muted" data-i18n="d_eq_leak">Leak at 4 Pa, m³/h</td><td class="num"><strong id="eqLeak">—</strong></td></tr>
             <tr><td class="muted" data-i18n="d_eq_summer_air">Air at the pigs in summer, °C</td><td class="num"><strong id="eqSummerAir">—</strong></td></tr>
@@ -143,6 +145,7 @@
             <select id="sHeaterType" class="field">
               <option value="electric" data-i18n="heater_electric">Electric</option>
               <option value="gas" data-i18n="heater_gas">Gas</option>
+              <option value="gas_indirect" data-i18n="heater_gas_indirect">Gas, indirect (flue outside)</option>
             </select>
           </label>
           <label><span class="muted small" data-i18n="s_creep">Creep heating per pen, W</span><input id="sCreep" class="field" type="number" value="150" /></label>

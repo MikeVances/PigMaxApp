@@ -29,6 +29,7 @@ from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DE
 from .pig_effective_temp import speed_for_cooling_ms
 from .pig_heat import DEFAULT_FEED_LEVEL
 from .heat_stress import heat_stress as heat_stress_check, rh_at
+from .survival import survival_fraction
 from .psychro import _w_from_wet_bulb, humidity_ratio, pressure_at_altitude_pa
 
 # Зимняя наружная RH по умолчанию для расчётного дня: ERA5 /climate-designs её не
@@ -45,6 +46,10 @@ DEFAULT_SUMMER_TARGET_C = 26.0
 
 # РД-АПК табл. 18, допустимая скорость воздуха летом, м/с: откорм 1.0; отъёмыши 0.6
 RD_SUMMER_SPEED_MAX_MS = {"finisher": 1.0, "nursery": 0.6}
+
+
+# Запас мощности отопления к пику, % — значение MINMAXapp (ventilation_design)
+DEFAULT_HEATING_MARGIN_PCT = 15.0
 
 
 @dataclass
@@ -79,6 +84,7 @@ class DesignInput:
     rise_c: float = DEFAULT_RISE_C
     altitude_m: float = 0.0
     heater_type: str = "gas_open"
+    heating_margin_pct: float = DEFAULT_HEATING_MARGIN_PCT
     pads: Optional[T.Pads] = None
     fan_curve: Optional[tuple[tuple[float, float], ...]] = None
     summer_target_c: float = DEFAULT_SUMMER_TARGET_C
@@ -143,12 +149,13 @@ def design(inp: DesignInput) -> Design:
     mean_h = ((inp.ridge_height_m or inp.wall_height_m) + inp.wall_height_m) / 2.0
     section_m2 = inp.width_m * mean_h
     if inp.mortality_pct > 0:
-        assumptions.append(_note("mortality_linear", mortality_pct=inp.mortality_pct))
+        assumptions.append(_note("mortality_constant_daily", mortality_pct=inp.mortality_pct))
 
     rows: list[dict] = []
-    span = inp.end_day - inp.start_day
+    # Период проекта — «цикл» модели выживаемости MINMAXapp: start_day — посадка (день 1)
+    cycle_days = inp.end_day - inp.start_day + 1
     for day in _day_grid(inp.start_day, inp.end_day, inp.step_days):
-        n = max(1, round(inp.count * (1.0 - inp.mortality_pct / 100.0 * (day - inp.start_day) / span)))
+        n = max(1, round(inp.count * survival_fraction(day - inp.start_day + 1, inp.mortality_pct, cycle_days)))
         sp = genetics_mod.setpoints(inp.genetics, day=day, phase=inp.phase)
         w, t_in = sp.weight_kg, sp.design_room_temp_c
         rh_max = inp.rh_max_pct or sp.rh_pct or DEFAULT_RH_MAX_PCT
@@ -207,10 +214,15 @@ def design(inp: DesignInput) -> Design:
     min_fans = max(r["min_ventilation_m3h"] for r in rows)
     summer = max(r["summer_ventilation_m3h"] for r in rows)
     heating = max(r["heating_kw"] for r in rows)
+    # Запас к пику: расчётная зима 99.6 % — не абсолютный минимум, а горелки стареют
+    # и греют неравномерно (MINMAXapp ventilation_design, 15 % по умолчанию)
+    margin = inp.heating_margin_pct
+    assumptions.append(_note("heating_safety_margin", pct=margin))
     equipment: dict = {
         "min_ventilation_capacity_m3h": min_fans,
         "max_ventilation_capacity_m3h": summer,
-        "heating_capacity_kw": heating,
+        "heating_need_kw": heating,
+        "heating_capacity_kw": round(heating * (1.0 + margin / 100.0), 1),
         "worst_heating_day": max(rows, key=lambda r: r["heating_kw"])["day"],
         "worst_summer_day": max(rows, key=lambda r: r["summer_ventilation_m3h"])["day"],
         "section_m2": round(section_m2, 2),

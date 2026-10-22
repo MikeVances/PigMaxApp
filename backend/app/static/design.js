@@ -83,6 +83,7 @@
     const eq = j.equipment;
     $('eqMin').textContent = fmt(eq.min_ventilation_capacity_m3h);
     $('eqMax').textContent = fmt(eq.max_ventilation_capacity_m3h);
+    $('eqHeatNeed').textContent = fmt(eq.heating_need_kw);
     $('eqHeat').textContent = fmt(eq.heating_capacity_kw);
     $('eqLeak').textContent = fmt(j.envelope.leak_4pa_m3h);
     $('eqSummerAir').textContent = fmt(eq.summer_air_c);
@@ -125,6 +126,7 @@
         start_day: num('dStart'), end_day: num('dEnd'),
         step_days: parseInt($('dStep').value, 10), mortality_pct: num('dMortality'),
       },
+      heating_margin_pct: num('dMargin'),
       climate: { winter_design_c: num('dWinter'), summer_design_db_c: num('dSummer'),
                  summer_design_rh_pct: num('dSummerRh') },
     };
