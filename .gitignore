@@ -19,6 +19,7 @@ env/
 
 # Runtime user data (created by app, not stored in repo)
 backend/data/*.json
+backend/data/*.jsonl*
 !backend/data/.gitkeep
 
 # OS

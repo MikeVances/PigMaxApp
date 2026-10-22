@@ -20,8 +20,11 @@ os.environ["PIG_SETTINGS_JSON"] = str(SETTINGS_FILE)
 # main.py при импорте грузит backend/.env. load_dotenv не перезаписывает уже
 # заданные переменные — поэтому пустые строки, а не удаление: иначе dotenv
 # подставил бы настоящий токен, и тест обратной связи написал бы в рабочий чат
-for _var in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WRITE_TOKEN"):
+for _var in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "WRITE_TOKEN", "API_KEYS"):
     os.environ[_var] = ""
+
+# Журнал вызовов API v1 — во временный каталог, рабочий backend/data/ не трогаем
+os.environ["API_AUDIT_LOG"] = str(_DATA_DIR / "api_audit.jsonl")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -47,3 +50,10 @@ def client(monkeypatch):
     with TestClient(app) as c:
         yield c
     SETTINGS_FILE.unlink(missing_ok=True)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    # Временный каталог тестов — убрать за собой: без этого каждый прогон оставлял
+    # свой pigmax_tests_* в системной временной папке
+    import shutil
+    shutil.rmtree(_DATA_DIR, ignore_errors=True)
