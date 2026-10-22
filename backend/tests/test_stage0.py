@@ -82,8 +82,10 @@ def test_unknown_floor_type_is_a_validation_error(client):
 def test_weight_outside_table_warns(client, weight):
     for path, extra in (("/calc/ventilation", {}), ("/calc/heat-balance", {"q_min_m3h": 5000})):
         w = client.post(path, json={**VENT, **extra, "weight_kg": weight}).json()["warnings"]
-        assert [x["code"] for x in w] == ["weight_outside_table"]
-        assert w[0]["params"] == {"weight_kg": weight, "table_min_kg": 5.4, "table_max_kg": 147.0}
+        # Наличие своего кода, а не точный состав: модель тепла добавляет свои
+        # предупреждения (за 120 кг — feed_level_extrapolated)
+        table = [x for x in w if x["code"] == "weight_outside_table"]
+        assert table and table[0]["params"] == {"weight_kg": weight, "table_min_kg": 5.4, "table_max_kg": 147.0}
 
 
 def test_weight_inside_table_has_no_warning(client):

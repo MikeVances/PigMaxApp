@@ -1,21 +1,15 @@
 """
 pig_thermal.py — Heat balance for pig houses.
 
-Heat production formula: Q = 5.09 × W^0.75  W/head
-Source: Brown-Brandl et al., ASAE Transactions 47(1):259-270, 2004.
-        (2012 updated estimate from PIC Guide Figure 4.1)
-
-Ventilation heat balance (same physics as poultry, different coefficients):
-  Q_heater = Q_walls + Q_ventilation − Q_pigs
+  Q_heater = Q_walls + Q_ventilation − Q_pigs_sensible
   Q_ventilation = Q_min [m³/h] × 0.335 [Wh/m³·K] × ΔT
+
+Тепло свиней — core/pig_heat.py. В обогрев идёт только ЯВНОЕ тепло на уровне
+здания: скрытое уходит с паром и воздух не греет. До 2026-10 здесь стояло
+5.09·W^0.75 (только поддержание по CIGR) и засчитывалось целиком.
 """
 
-import math
-
-
-def pig_heat_w(weight_kg: float) -> float:
-    """Total heat production per pig, Watts. Brown-Brandl 2004."""
-    return 5.09 * (weight_kg ** 0.75)
+from .pig_heat import DEFAULT_FEED_LEVEL, pig_heat
 
 
 def ventilation_heat_loss_w(q_min_m3h: float, t_inside: float, t_outside: float) -> float:
@@ -34,19 +28,23 @@ def analyze_heat_balance(
     ua_coefficient: float | None = None,
     building_volume_m3: float | None = None,
     total_heater_power_kw: float | None = None,
+    heat_method: str = "cigr2002",
+    feed_level: str = DEFAULT_FEED_LEVEL,
 ) -> dict:
     """
     Full heat balance for pig house.
 
     Returns:
-        q_pigs_kw         — total heat from pigs
+        q_pigs_kw         — SENSIBLE heat from pigs (warms the air)
+        q_pigs_total_kw   — total heat from pigs, for reference
         q_ventilation_kw  — heat lost through min ventilation
         q_walls_kw        — heat lost through walls/roof (requires UA)
         q_heater_required_kw — heating needed to maintain target temp
         duty_cycle        — fraction of time heater runs (0–1)
         ach_min           — air changes per hour at minimum ventilation
     """
-    q_pigs_kw = pig_heat_w(avg_weight_kg) * num_pigs / 1000
+    heat = pig_heat("growing", avg_weight_kg, t_inside_target, method=heat_method, feed_level=feed_level)
+    q_pigs_kw = heat.sensible_w * num_pigs / 1000
 
     delta_t = t_inside_target - t_outside
     q_vent_kw = ventilation_heat_loss_w(q_min_m3h, t_inside_target, t_outside) / 1000
@@ -68,6 +66,11 @@ def analyze_heat_balance(
 
     return {
         "q_pigs_kw":            round(q_pigs_kw, 2),
+        "q_pigs_total_kw":      round(heat.total_w * num_pigs / 1000, 2),
+        "heat_method":          heat.method,
+        "heat_source_id":       heat.source_id,
+        "heat_assumptions":     heat.assumptions,
+        "heat_warnings":        heat.warnings,
         "q_ventilation_kw":     round(q_vent_kw, 2),
         "q_walls_kw":           round(q_walls_kw, 2),
         "q_heater_required_kw": round(q_heater_required_kw, 2),

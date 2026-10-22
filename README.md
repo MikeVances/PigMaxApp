@@ -36,17 +36,20 @@ Q_heater = Q_walls + Q_ventilation − Q_pigs
 
 Q_walls        = UA × ΔT                          (W)
 Q_ventilation  = V̇_min × 0.335 × ΔT              (W)
-Q_pigs         = 5.09 × W^0.75 × N                (W)   ← Brown-Brandl 2004
+Q_pigs         = sensible heat × N                (W)   ← CIGR 2002 (core/pig_heat.py)
 ```
 
 Where:
 - `UA` — building envelope heat transfer coefficient (W/K)
 - `V̇_min` — minimum ventilation rate (m³/h), from PIC Table 4.1 × head count
 - `W` — average live weight (kg), `N` — number of pigs
-- `5.09` — pig heat production coefficient (2012 updated estimate)
+- Q_pigs counts only **sensible** heat at house level: latent heat leaves with vapour and does not warm the air
 
-**Why is the coefficient different from poultry?**  
-Pigs produce less heat per unit of metabolic mass than broilers at the same weight. The `W^0.75` scaling (Kleiber's law) applies to both species, but the proportionality constant differs because of metabolic rate, insulation (skin vs. feathers), and body composition differences.
+**Heat production = maintenance + feed.** CIGR 2002 gives total heat as maintenance
+(`5.09·m^0.75` for growing pigs) plus the part of the feed energy above maintenance that
+turns into heat. Maintenance alone — what this app used before 2026-10 — is ~70 % of
+the total for a 100 kg finisher. Three methods are available (CIGR 2002, Brown-Brandl
+2004, Russian RD-APK 1.10.02.04-12); every response names the one it used.
 
 ---
 
@@ -90,6 +93,13 @@ Tests never touch `backend/data/`: settings go to a temporary file via `PIG_SETT
 
 References used by the calculator: [`docs/sources.md`](docs/sources.md).
 
+### Heat production endpoint
+
+`POST /calc/heat-production` — heat, vapour and CO₂ of one animal for any group
+(`growing`, `boar`, `dry_sow`, `gestating_sow`, `lactating_sow`) by method
+`cigr2002` (default), `brown_brandl_2004` (growing pigs only) or `rd_apk_2012`.
+`GET /sources/{source_id}` explains every source id a response cites.
+
 ---
 
 ## Data Sources
@@ -97,7 +107,9 @@ References used by the calculator: [`docs/sources.md`](docs/sources.md).
 | Source | Used for |
 |--------|---------|
 | PIC Grow-Finish Management Guide, 2019 | Temperature setpoints, min ventilation, stocking density, gas limits |
-| Brown-Brandl T.M. et al., ASAE Transactions 47(1):259-270, 2004 | Pig heat production model |
+| CIGR 4th Report (Pedersen & Sällvik, eds.), 2002 | Heat, vapour and CO₂ of all pig groups (default method) |
+| Brown-Brandl T.M. et al., ASAE Transactions 47(1):259-270, 2004 | Heat production of modern growing pigs (alternative method) |
+| РД-АПК 1.10.02.04-12 (Russia), 2012 | Heat, vapour and CO₂ tables (alternative method) |
 | Huynh T.T.T. et al., 2005 | Humidity × temperature interaction on feed intake |
 | EN 13779 / ASHRAE | Air properties, psychrometrics |
 
