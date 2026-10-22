@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -6,11 +5,12 @@ from fastapi.staticfiles import StaticFiles
 from .routers import pig_calc
 from .routers import pig_settings as settings_router
 from .routers import feedback as feedback_router
+from .core.build_info import APP_VERSION, build_info
 
 # Ищем .env рядом с backend/ независимо от рабочей директории запуска
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-app = FastAPI(title="PigMax — Pig House Ventilation", version="0.1.0")
+app = FastAPI(title="PigMax — Pig House Ventilation", version=APP_VERSION)
 
 
 @app.get("/healthz")
@@ -20,8 +20,8 @@ def healthz():
 
 @app.get("/version")
 def version():
-    commit = os.environ.get("RENDER_GIT_COMMIT", "local")[:7]
-    return {"commit": commit}
+    # Коммит, ветка, дата: на внутреннем сервере — из .git, на Render — из его переменных
+    return build_info()
 
 
 app.include_router(pig_calc.router,        tags=["calc"])
