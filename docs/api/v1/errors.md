@@ -84,6 +84,7 @@
 | <a id="pre_farrowing_as_late_gestation"></a>`pre_farrowing_as_late_gestation` | до опороса у методик без этой стадии — супоросная на 112-й день |
 | <a id="profile_has_no_ventilation_norm"></a>`profile_has_no_ventilation_norm` | у профиля нет нормы вентиляции на голову |
 | <a id="gas_heater_treated_as_open_flame"></a>`gas_heater_treated_as_open_flame` | газовый отопитель считается открытым пламенем (CO₂ и пар в помещение) |
+| <a id="max_equals_min_in_heating"></a>`max_equals_min_in_heating` | наружная с подъёмом холоднее помещения — режим отопления: максимум равен минимуму, сверх него воздуха не нужно |
 | <a id="mortality_linear"></a>`mortality_linear` | падёж цикла распределён по дням линейно |
 | <a id="heating_without_heater_dilution_air"></a>`heating_without_heater_dilution_air` | мощность отопления проекта — без воздуха разбавления CO₂ самих горелок |
 | <a id="season_ignored_for_profile"></a>`season_ignored_for_profile` | интерфейс: у профиля генетики (кроме PIC) нет зимней и летней уставки — сезон не учитывается |

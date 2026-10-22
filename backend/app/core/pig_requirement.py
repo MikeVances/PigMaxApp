@@ -157,6 +157,14 @@ def requirement(inp: RequirementInput) -> Requirement:
     sources += mx.sources
     warnings += [w for w in mx.warnings if w not in warnings]
 
+    # Помещение в режиме отопления: наружная с подъёмом холоднее помещения — расчёт
+    # «по теплу» шёл бы при внутренней ниже уставки (на −15 °C — при −12), а норма
+    # «на лето» к этому дню не относится. Как в MINMAXapp: на морозе максимум равен
+    # минимуму — сверх минимальной вентиляции воздуха не нужно, тепло уходит на её подогрев
+    heating_mode = inp.t_outside_c + inp.rise_c < t_in
+    if heating_mode:
+        assumptions.append(_note("max_equals_min_in_heating", t_outside_c=inp.t_outside_c, t_inside_c=round(t_in, 1)))
+
     # ── Отопление ─────────────────────────────────────────────────────────────
     heating = None
     if inp.ua_w_per_k is not None or inp.heater_power_kw > 0:
@@ -197,9 +205,12 @@ def requirement(inp: RequirementInput) -> Requirement:
                          "basis": mv.basis, "co2_m3h": mv.co2_m3h, "moisture_m3h": mv.moisture_m3h,
                          "norm_m3h": mv.norm_m3h, "delta_w_g_per_kg": mv.delta_w_g_per_kg,
                          "humidity_uncontrollable": mv.humidity_uncontrollable},
-        max_ventilation={"per_head_m3h": mx.per_head_m3h, "total_m3h": mx.total_m3h, "basis": mx.basis,
-                            "heat_m3h": mx.heat_m3h_per_head, "norm_m3h": mx.norm_m3h_per_head,
-                            "t_inside_c": mx.t_inside_c, "rise_c": mx.rise_c},
+        max_ventilation=({"per_head_m3h": mv.per_head_m3h, "total_m3h": round(mv.per_head_m3h * inp.count, 0),
+                          "basis": "minimum", "heat_m3h": mx.heat_m3h_per_head, "norm_m3h": mx.norm_m3h_per_head,
+                          "t_inside_c": round(t_in, 1), "rise_c": mx.rise_c} if heating_mode else
+                         {"per_head_m3h": mx.per_head_m3h, "total_m3h": mx.total_m3h, "basis": mx.basis,
+                          "heat_m3h": mx.heat_m3h_per_head, "norm_m3h": mx.norm_m3h_per_head,
+                          "t_inside_c": mx.t_inside_c, "rise_c": mx.rise_c}),
         heating=heating, effective_temperature=eff,
         sources=list(dict.fromkeys(sources)),
         assumptions=_unique(assumptions), warnings=_unique(warnings),

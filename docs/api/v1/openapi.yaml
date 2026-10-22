@@ -576,7 +576,7 @@ components:
       properties:
         per_head_m3h: { type: number }
         total_m3h: { type: number }
-        basis: { type: string, enum: [heat, norm] }
+        basis: { type: string, enum: [heat, norm, minimum], description: "minimum — помещение в режиме отопления: максимум равен минимуму" }
         heat_m3h: { type: number }
         norm_m3h: { type: [number, "null"] }
         t_inside_c: { type: number }

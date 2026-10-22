@@ -172,3 +172,21 @@ def test_design_is_in_the_audit_log(client):
     j = client.post(DESIGN, json=DESIGN_REQ).json()
     e = _audit(j["request_id"])
     assert e["result"]["heating_capacity_kw"] == j["equipment"]["heating_capacity_kw"]
+
+
+def test_now_max_equals_min_in_heating_mode(client):
+    # Приёмка агента 2026-10-22: при −15 °C «максимум» считался при внутренней −12 °C
+    # и выдавал летнюю норму опоросника. В режиме отопления максимум = минимум
+    body = {"animals": {"group": "lactating_sow", "count": 40, "weight_kg": 220, "lactation_day": 7},
+            "conditions": {"t_outside_c": -15, "rh_outside_pct": 85}}
+    j = client.post(NOW, json=body).json()
+    assert j["max_ventilation"]["basis"] == "minimum"
+    assert j["max_ventilation"]["per_head_m3h"] == j["min_ventilation"]["per_head_m3h"]
+    assert j["max_ventilation"]["t_inside_c"] == j["t_inside_c"]
+    assert any(a["code"] == "max_equals_min_in_heating" for a in j["assumptions"])
+
+
+def test_now_max_by_heat_or_norm_in_summer(client):
+    j = client.post(NOW, json={**NOW_REQ, "conditions": {"t_outside_c": 28, "rh_outside_pct": 50}}).json()
+    assert j["max_ventilation"]["basis"] in ("heat", "norm")
+    assert j["max_ventilation"]["per_head_m3h"] > j["min_ventilation"]["per_head_m3h"]
