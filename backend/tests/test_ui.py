@@ -21,7 +21,7 @@ def _keys(lang: str) -> set[str]:
 
 
 def _used() -> set[str]:
-    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "feedback.js"))
+    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "design.html", "design.js", "feedback.js"))
     used = set(re.findall(r'data-i18n(?:-[a-z]+)?="([a-z_0-9]+)"', text))
     used |= set(re.findall(r"\bt\('([a-z_0-9]+)'", text))
     used |= set(re.findall(r'data-page-title="([a-z_0-9]+)"', text))
@@ -72,7 +72,7 @@ def test_language_switch_event_exists():
     assert "addEventListener('langchange'" in (STATIC / "index.html").read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("name", ["index.html", "feedback.js"])
+@pytest.mark.parametrize("name", ["index.html", "design.html", "design.js", "feedback.js"])
 def test_styles_live_in_css(name):
     # Оформление — в styles.css; во встроенных стилях допустим только display:none:
     # это состояние, которое переключает скрипт, а не оформление
@@ -80,3 +80,34 @@ def test_styles_live_in_css(name):
     inline = set(re.findall(r'style="([^"]*)"', text)) - {"display:none;"}
     assert not inline, inline
     assert "style.cssText" not in text
+
+
+DESIGN_BODY = {"house": {"length_m": 60, "width_m": 18, "wall_height_m": 2.6, "envelope": {"ua_w_per_k": 600}},
+               "herd": {"genetics": "pic_2019", "count": 1000, "start_day": 30, "end_day": 150, "step_days": 30},
+               "climate": {"winter_design_c": -25, "summer_design_db_c": 32, "summer_design_rh_pct": 40}}
+
+
+def test_ui_design_route_equals_api(client):
+    # Интерфейс и API v1 считают одной функцией (run_design): одинаковые числа
+    ui = client.post("/calc/design", json=DESIGN_BODY).json()
+    api = client.post("/api/v1/ventilation-designs", json=DESIGN_BODY).json()
+    assert ui["days"] == api["days"] and ui["equipment"] == api["equipment"]
+
+
+def test_ui_design_route_needs_no_api_key(client, monkeypatch):
+    # С API_KEYS /api/v1 требует ключ — страница интерфейса работать должна
+    monkeypatch.setenv("API_KEYS", "secret-key")
+    assert client.post("/api/v1/ventilation-designs", json=DESIGN_BODY).status_code == 401
+    assert client.post("/calc/design", json=DESIGN_BODY).status_code == 200
+
+
+def test_ui_design_route_errors(client):
+    r = client.post("/calc/design", json={**DESIGN_BODY, "herd": {**DESIGN_BODY["herd"], "genetics": "nope"}})
+    assert r.status_code == 404 and r.json()["detail"]["code"] == "genetics_not_found"
+    r = client.post("/calc/design", json={**DESIGN_BODY, "herd": {**DESIGN_BODY["herd"], "genetics": "danbred"}})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "invalid_parameters"
+
+
+def test_design_page_is_served(client):
+    html = client.get("/design.html").text
+    assert 'id="dRun"' in html and "design.js" in html

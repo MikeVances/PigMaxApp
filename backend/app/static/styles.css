@@ -107,3 +107,9 @@ input[type="number"], input[type="text"], select, textarea { font-size: 16px; }
                  border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 14px; font-family: inherit; }
 .feedback-status { min-height: 18px; font-size: 12px; margin-top: 6px; }
 .feedback-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+
+/* Навигация между страницами и списки заметок (страница проекта) */
+.nav-links { display: flex; gap: 14px; font-size: 13px; }
+.nav-links a { text-decoration: none; color: var(--muted); }
+.nav-links a.nav-active { color: var(--accent); font-weight: 600; }
+.note-list { margin: 6px 0 0 18px; padding: 0; color: var(--muted); }

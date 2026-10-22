@@ -654,14 +654,13 @@ class DesignRequest(_Strict):
     summer_target_c: float = Field(pig_design.DEFAULT_SUMMER_TARGET_C, ge=15, le=35)
 
 
-@api.post("/ventilation-designs", status_code=201)
-def create_ventilation_design(req: DesignRequest, request: Request) -> JSONResponse:
-    """Проект корпуса для цикла растущих свиней: по дням и подбор оборудования."""
+def run_design(req: "DesignRequest") -> pig_design.Design:
+    """Проект по запросу: общий для API v1 и маршрута интерфейса /calc/design."""
     h, e, m = req.house, req.house.envelope, req.model
     _require_profiles(req.herd.genetics, None)
-    ua, _ = (e.ua_w_per_k, None) if e.ua_w_per_k is not None else (None, None)
+    ua = e.ua_w_per_k
     try:
-        d = pig_design.design(pig_design.DesignInput(
+        return pig_design.design(pig_design.DesignInput(
             genetics=req.herd.genetics, count=req.herd.count, start_day=req.herd.start_day,
             end_day=req.herd.end_day, length_m=h.length_m, width_m=h.width_m, wall_height_m=h.wall_height_m,
             ridge_height_m=h.ridge_height_m, ua_w_per_k=ua,
@@ -682,6 +681,12 @@ def create_ventilation_design(req: DesignRequest, request: Request) -> JSONRespo
         raise
     except ValueError as ex:
         raise CalcError("invalid_parameters", message=str(ex))
+
+
+@api.post("/ventilation-designs", status_code=201)
+def create_ventilation_design(req: DesignRequest, request: Request) -> JSONResponse:
+    """Проект корпуса для цикла растущих свиней: по дням и подбор оборудования."""
+    d = run_design(req)
     rid = _rid(request)
     body = {"request_id": rid, "app_version": _app_version(), "envelope": d.envelope, "days": d.days,
             "equipment": d.equipment, "sources": _sources(d.sources), "assumptions": d.assumptions,

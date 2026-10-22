@@ -7,6 +7,7 @@ from .routers import pig_settings as settings_router
 from .routers import feedback as feedback_router
 from .routers import house_calc
 from .routers import sow_calc
+from .routers import design_calc
 from .core.build_info import APP_VERSION, build_info
 
 # Ищем .env рядом с backend/ независимо от рабочей директории запуска
@@ -31,6 +32,7 @@ app.include_router(settings_router.router, tags=["settings"])
 app.include_router(feedback_router.router, tags=["feedback"])
 app.include_router(house_calc.router,      tags=["house"])
 app.include_router(sow_calc.router,        tags=["sows"])
+app.include_router(design_calc.router,     tags=["design"])
 
 # Публичный API v1 — отдельное подприложение со своим форматом ошибок (RFC 7807).
 # Монтируется ДО статики: mount("/") ниже перехватил бы /api/v1/... как файлы

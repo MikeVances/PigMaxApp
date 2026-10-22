@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PigMax — Design</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./i18n/en.js"></script>
+  <script src="./i18n/ru.js"></script>
+  <script src="./i18n/pl.js"></script>
+  <script src="./i18n/de.js"></script>
+  <script src="./i18n/fr.js"></script>
+  <script src="./i18n.js"></script>
+</head>
+<body data-page-title="design_title">
+  <main class="container">
+
+    <div class="page-header">
+      <h1 class="m0" data-i18n="design_title">🐷 PigMax — Design</h1>
+      <nav class="nav-links">
+        <a href="./index.html" class="link-plain" data-i18n="nav_now">Now</a>
+        <a href="./design.html" class="link-plain nav-active" data-i18n="nav_design">Design &amp; sows</a>
+      </nav>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="project" data-i18n="tab_project">Finishing house project</button>
+      <button class="tab" data-tab="sows" data-i18n="tab_sows">Sow room</button>
+    </div>
+
+    <!-- ── Проект откорма ───────────────────────────────────────────────────── -->
+    <section id="tab-project">
+      <div class="card mb">
+        <h2 data-i18n="d_section_house">House</h2>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="d_length">Length, m</span><input id="dLength" class="field" type="number" value="60" /></label>
+          <label><span class="muted small" data-i18n="d_width">Width, m</span><input id="dWidth" class="field" type="number" value="18" /></label>
+          <label><span class="muted small" data-i18n="d_wall">Wall height, m</span><input id="dWall" class="field" type="number" step="0.1" value="2.6" /></label>
+          <label><span class="muted small" data-i18n="d_ridge">Ridge height, m</span><input id="dRidge" class="field" type="number" step="0.1" value="4.0" /></label>
+          <label><span class="muted small" data-i18n="d_u_walls">Walls U, W/(m²·K)</span><input id="dUWalls" class="field" type="number" step="0.01" value="0.25" /></label>
+          <label><span class="muted small" data-i18n="d_u_roof">Roof U, W/(m²·K)</span><input id="dURoof" class="field" type="number" step="0.01" value="0.22" /></label>
+          <label><span class="muted small" data-i18n="d_airtight">Airtightness</span>
+            <select id="dAirtight" class="field">
+              <option value="tight" data-i18n="opt_tight">Tight</option>
+              <option value="moderate" selected data-i18n="opt_moderate">Moderate</option>
+              <option value="leaky" data-i18n="opt_leaky">Leaky</option>
+              <option value="very_leaky" data-i18n="opt_very_leaky">Very leaky</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card mb">
+        <h2 data-i18n="d_section_herd">Herd</h2>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="label_genetics">Genetics</span><select id="dGenetics" class="field"></select></label>
+          <label><span class="muted small" data-i18n="label_num_pigs">Number of pigs</span><input id="dCount" class="field" type="number" value="1000" /></label>
+          <label><span class="muted small" data-i18n="d_start_day">Start, day after weaning</span><input id="dStart" class="field" type="number" value="30" /></label>
+          <label><span class="muted small" data-i18n="d_end_day">End, day after weaning</span><input id="dEnd" class="field" type="number" value="150" /></label>
+          <label><span class="muted small" data-i18n="d_step">Step, days</span><input id="dStep" class="field" type="number" value="14" /></label>
+          <label><span class="muted small" data-i18n="d_mortality">Mortality, %</span><input id="dMortality" class="field" type="number" step="0.5" value="3" /></label>
+        </div>
+      </div>
+
+      <div class="card mb">
+        <h2 data-i18n="d_section_climate">Design climate</h2>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="d_winter">Winter design, °C</span><input id="dWinter" class="field" type="number" value="-25" /></label>
+          <label><span class="muted small" data-i18n="d_summer">Summer design, °C</span><input id="dSummer" class="field" type="number" value="32" /></label>
+          <label><span class="muted small" data-i18n="d_summer_rh">Summer RH, %</span><input id="dSummerRh" class="field" type="number" value="40" /></label>
+          <label><span class="muted small" data-i18n="d_pads">Cooling pads</span>
+            <select id="dPads" class="field">
+              <option value="" data-i18n="d_pads_none">None</option>
+              <option value="7090:150">SANHE 7090 · 150 mm</option>
+              <option value="7090:100">SANHE 7090 · 100 mm</option>
+              <option value="7060:150">SANHE 7060 · 150 mm</option>
+            </select>
+          </label>
+        </div>
+        <button id="dRun" class="btn mt-14 full" data-i18n="d_btn_design">Calculate design</button>
+        <div id="dError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+
+      <div id="dResult" style="display:none;">
+        <div class="card mb">
+          <h2 data-i18n="d_eq_title">Equipment for the worst day</h2>
+          <table class="table-plain">
+            <tr><td class="muted" data-i18n="d_eq_min">Minimum ventilation capacity, m³/h</td><td class="num"><strong id="eqMin">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_max">Maximum ventilation capacity, m³/h</td><td class="num"><strong id="eqMax">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_heat">Heating capacity, kW</td><td class="num"><strong id="eqHeat">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_leak">Leak at 4 Pa, m³/h</td><td class="num"><strong id="eqLeak">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_summer_air">Air at the pigs in summer, °C</td><td class="num"><strong id="eqSummerAir">—</strong></td></tr>
+            <tr><td class="muted" data-i18n="d_eq_speed">Air speed to the summer target, m/s</td><td class="num"><strong id="eqSpeed">—</strong></td></tr>
+            <tr id="eqPadsRow" style="display:none;"><td class="muted" data-i18n="d_eq_pads">Pad area, m² / water, l/h</td><td class="num"><strong id="eqPads">—</strong></td></tr>
+          </table>
+        </div>
+
+        <div class="card mb">
+          <h2 data-i18n="d_days_title">By days</h2>
+          <table class="table-plain">
+            <thead><tr>
+              <th data-i18n="d_col_day">Day</th><th data-i18n="d_col_weight">kg</th><th data-i18n="d_col_setpoint">°C</th>
+              <th data-i18n="d_col_min">Min, m³/h</th><th data-i18n="d_col_basis">Set by</th>
+              <th data-i18n="d_col_heating">Heating, kW</th><th data-i18n="d_col_summer">Summer, m³/h</th>
+            </tr></thead>
+            <tbody id="dDays"></tbody>
+          </table>
+        </div>
+
+        <div class="card mb text-13">
+          <div class="muted" data-i18n="warnings_title">Warnings</div>
+          <ul id="dWarnings" class="warn-list"></ul>
+          <div class="muted mt-12" data-i18n="assumptions_title">Assumptions</div>
+          <ul id="dAssumptions" class="note-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Помещение свиноматок ─────────────────────────────────────────────── -->
+    <section id="tab-sows" style="display:none;">
+      <div class="card mb">
+        <h2 data-i18n="tab_sows">Sow room</h2>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="s_profile">Climate profile</span><select id="sProfile" class="field"></select></label>
+          <label><span class="muted small" data-i18n="s_stage">Stage</span>
+            <select id="sStage" class="field">
+              <option value="lactation" data-i18n="opt_lactation">Farrowing / lactation</option>
+              <option value="gestation" data-i18n="opt_gestation">Gestation</option>
+              <option value="dry" data-i18n="opt_dry">Dry sows</option>
+            </select>
+          </label>
+          <label><span class="muted small" data-i18n="s_day">Lactation / pregnancy day</span><input id="sDay" class="field" type="number" value="7" /></label>
+          <label><span class="muted small" data-i18n="s_count">Sows</span><input id="sCount" class="field" type="number" value="40" /></label>
+          <label><span class="muted small" data-i18n="s_weight">Sow weight, kg</span><input id="sWeight" class="field" type="number" value="220" /></label>
+          <label><span class="muted small" data-i18n="label_t_outside">Outside temp, °C</span><input id="sTOut" class="field" type="number" value="-15" /></label>
+          <label><span class="muted small" data-i18n="label_rh_outside">Outside RH, %</span><input id="sRhOut" class="field" type="number" value="85" /></label>
+          <label><span class="muted small" data-i18n="s_ua">House UA, W/K</span><input id="sUa" class="field" type="number" value="400" /></label>
+          <label><span class="muted small" data-i18n="s_heater_kw">Heaters, kW</span><input id="sHeater" class="field" type="number" value="60" /></label>
+          <label><span class="muted small" data-i18n="label_heater_type">Heater type</span>
+            <select id="sHeaterType" class="field">
+              <option value="electric" data-i18n="heater_electric">Electric</option>
+              <option value="gas" data-i18n="heater_gas">Gas</option>
+            </select>
+          </label>
+          <label><span class="muted small" data-i18n="s_creep">Creep heating per pen, W</span><input id="sCreep" class="field" type="number" value="150" /></label>
+        </div>
+        <button id="sRun" class="btn mt-14 full" data-i18n="btn_calculate">Calculate</button>
+        <div id="sError" class="alert-danger mt-12" style="display:none;"></div>
+      </div>
+
+      <div id="sResult" style="display:none;">
+        <div class="cols cols-160 mb">
+          <div class="card center"><div class="muted stat-label" data-i18n="s_room">Room, °C</div><div id="sRoom" class="stat-value-main">—</div></div>
+          <div class="card center"><div class="muted stat-label" data-i18n="s_nest">Creep, °C</div><div id="sNest" class="stat-value">—</div></div>
+          <div class="card center"><div class="muted stat-label" data-i18n="res_vent_min">Min ventilation</div><div id="sMin" class="stat-value">—</div><div class="muted unit" data-i18n="unit_m3h">m³/h</div></div>
+          <div class="card center"><div class="muted stat-label" data-i18n="hb_q_heater">Heating required</div><div id="sHeat" class="stat-value">—</div><div class="muted unit">kW</div></div>
+        </div>
+        <div class="card mb text-13">
+          <div><span class="muted" data-i18n="res_min_basis">Minimum set by: </span><strong id="sBasis">—</strong></div>
+          <div class="mt-6"><span class="muted" data-i18n="s_summer">Summer maximum per sow, m³/h: </span><strong id="sSummer">—</strong></div>
+          <ul id="sWarnings" class="warn-list"></ul>
+          <ul id="sAssumptions" class="note-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-footer" data-i18n="footer_disclaimer"></div>
+  </main>
+  <script src="./design.js"></script>
+  <script src="./feedback.js"></script>
+</body>
+</html>
