@@ -25,6 +25,9 @@
       </nav>
     </div>
 
+    <!-- Корпус фермы: список — на сервере, выбор — в браузере (house.js) -->
+    <div id="houseBar" class="card mb row-actions"></div>
+
     <!-- ── 1. Ventilation inputs ────────────────────────────────────────────── -->
     <div class="card mb">
       <h2 data-i18n="section_inputs">House Parameters</h2>
@@ -298,6 +301,7 @@
 
   </main>
 
+  <script src="./house.js"></script>
   <script>
   (function () {
 
@@ -314,7 +318,7 @@
 
     async function loadSettings() {
       try {
-        const r = await fetch('./settings');
+        const r = await fetch(PigHouse.url('./settings'));
         if (!r.ok) return;
         const s = await r.json();
         currentSettings = s;
@@ -348,7 +352,7 @@
       const headers = { 'Content-Type': 'application/json' };
       const token = loadWriteToken() || writeTokenFallback;
       if (token) headers['X-Write-Token'] = token;
-      return fetch('./settings', { method: 'PUT', headers, body: JSON.stringify(payload) });
+      return fetch(PigHouse.url('./settings'), { method: 'PUT', headers, body: JSON.stringify(payload) });
     }
 
     document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
@@ -580,7 +584,13 @@
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
-    loadSettings();
+    // Сначала список корпусов (какой открыт), потом настройки этого корпуса
+    PigHouse.ready.then(loadSettings);
+    // Другой корпус — его размеры и отопитель; результат пересчитать, если он уже на экране
+    document.addEventListener('housechange', async () => {
+      await loadSettings();
+      if (lastVent) document.getElementById('calcBtn').click();
+    });
     fetch('./version').then(r => r.json()).then(d => {
       document.getElementById('buildVersion').textContent = d.commit;
     }).catch(() => {});

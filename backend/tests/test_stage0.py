@@ -21,7 +21,7 @@ SETTINGS = {"building": {"length_m": 60.0, "width_m": 12.0, "height_m": 2.5}}
 def test_settings_go_to_the_env_path(client, settings_file):
     # Регрессионный сторож изоляции: запись — во временный файл из окружения
     assert client.put("/settings", json=SETTINGS).status_code == 200
-    assert json.loads(settings_file.read_text(encoding="utf-8"))["building"]["length_m"] == 60.0
+    assert json.loads(settings_file.read_text(encoding="utf-8"))["houses"]["1"]["building"]["length_m"] == 60.0
     assert client.get("/settings").json()["building"]["floor_area_m2"] == 720.0
 
 

@@ -3,12 +3,15 @@ pig_settings.py — Persistent building and heater configuration (JSON file).
 """
 
 import json
+import re
 import logging
 import os
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from .house_id import HOUSE_ID_PATTERN
 
 log = logging.getLogger(__name__)
 
@@ -62,14 +65,53 @@ class FarmConfig(BaseModel):
     climate_source:       Optional[str]   = Field(None, max_length=120)
 
 
-class PigSettings(BaseModel):
+class HouseConfig(BaseModel):
+    """Свой корпус фермы: размеры, отопитель, UA и калибровка — у каждого свои."""
     building:       BuildingConfig = BuildingConfig()
     heater:         HeaterConfig   = HeaterConfig()
-    ua_coefficient: float | None   = None   # W/K — from calibration
+    ua_coefficient: float | None   = None   # W/K — по конструкции или калибровке
     # Калибровка по кривой остывания (core/cooling_fit): отметки хранятся, чтобы
-    # пересчитать UA, если поменяются размеры корпуса
+    # пересчитать UA, если поменяются размеры корпуса. Лежит ВНУТРИ записи корпуса:
+    # у MINMAXapp калибровку одного корпуса подставляли в расчёт любого (аудит
+    # 2026-10-18), здесь применить её к чужому корпусу нельзя по устройству
     calibration:    dict | None    = None
-    farm:           FarmConfig     = FarmConfig()
+
+
+# Корпус, который появляется сам: пустой файл или файл до этапа 9 (один корпус).
+# Имя нейтральное — без языка: его видят пользователи всех пяти языков интерфейса
+DEFAULT_HOUSE_ID = "1"
+_LEGACY_HOUSE_FIELDS = ("building", "heater", "ua_coefficient", "calibration")
+
+
+class PigSettings(BaseModel):
+    houses: dict[str, HouseConfig] = Field(default_factory=lambda: {DEFAULT_HOUSE_ID: HouseConfig()})
+    farm:   FarmConfig = FarmConfig()
+
+    @model_validator(mode="before")
+    @classmethod
+    def _one_house_file(cls, data):
+        # Файл до этапа 9: корпус лежал полями верхнего уровня. Становится корпусом
+        # "1" — иначе обновление молча сбросило бы размеры и калибровку на ферме
+        if isinstance(data, dict) and "houses" not in data:
+            legacy = {k: data[k] for k in _LEGACY_HOUSE_FIELDS if k in data}
+            data = {k: v for k, v in data.items() if k not in _LEGACY_HOUSE_FIELDS}
+            data["houses"] = {DEFAULT_HOUSE_ID: legacy}
+        return data
+
+    @model_validator(mode="after")
+    def _at_least_one_house(self):
+        if not self.houses:
+            self.houses = {DEFAULT_HOUSE_ID: HouseConfig()}
+        # Имя корпуса выводится в интерфейсе — то же правило, что у маршрутов
+        # (house_id MINMAXapp): из копии или руками в файле разметка не придёт
+        bad = [h for h in self.houses if not re.fullmatch(HOUSE_ID_PATTERN, h)]
+        if bad:
+            raise ValueError(f"house id not allowed: {bad[0]!r}")
+        return self
+
+    def house_id(self, requested: Optional[str]) -> str:
+        """Запрошенный корпус или первый: без параметра — как до этапа 9, один корпус."""
+        return requested if requested is not None else next(iter(self.houses))
 
 
 def load_settings() -> PigSettings:

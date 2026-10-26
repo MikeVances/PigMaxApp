@@ -136,10 +136,14 @@
 
 ## Настройки хозяйства и резервная копия
 
-Маршруты интерфейса `PUT /settings`, `POST /settings/design-climate`, `GET`/`POST /backup`
+Маршруты интерфейса `GET`/`PUT /settings?house=`, `POST /houses`, `POST /houses/{id}/rename`,
+`DELETE /houses/{id}`, `POST /settings/design-climate`, `GET`/`POST /backup`
 (запись — под `WRITE_TOKEN`). Коды — в `detail`; `genetics_not_found` (422) — профиль по
 умолчанию не существует, `climate_unavailable` (502) — как у API v1.
 
 | Код | Статус | Смысл |
 |---|---|---|
+| <a id="house_not_found"></a>`house_not_found` | 404 | корпуса с таким именем нет (`house_id`) |
+| <a id="house_exists"></a>`house_exists` | 409 | имя корпуса занято — у того корпуса свои измерения, слить молча нельзя |
+| <a id="last_house"></a>`last_house` | 409 | последний корпус фермы не удаляется |
 | <a id="backup_invalid"></a>`backup_invalid` | 422 | файл копии не проходит модели сохранения (`field`) — ничего не записано |

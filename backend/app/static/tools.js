@@ -96,7 +96,8 @@
     }
     return r;
   }
-  const putSettings = payload => writeRequest('PUT', './settings', payload);
+  // Корпус — открытый в панели (house.js): UA и калибровка пишутся в него
+  const putSettings = payload => writeRequest('PUT', PigHouse.url('./settings'), payload);
   function done(id, text) {
     $(id).textContent = text;
     $(id).style.display = '';
@@ -182,7 +183,7 @@
     let body;
     try { body = calibrationBody(); } catch (e) { return badLine('c', e); }
     if (opt('cVolume') !== null) body.volume_m3 = opt('cVolume');
-    const j = await post('c', './calc/calibrate-ua', body);
+    const j = await post('c', PigHouse.url('./calc/calibrate-ua'), body);
     if (!j) return;
     show('c', j, j => {
       rows('c', [

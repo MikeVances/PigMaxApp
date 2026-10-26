@@ -21,7 +21,7 @@ def _keys(lang: str) -> set[str]:
 
 
 def _used() -> set[str]:
-    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "feedback.js"))
+    text = "".join((STATIC / f).read_text(encoding="utf-8") for f in ("index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "house.js", "feedback.js"))
     used = set(re.findall(r'data-i18n(?:-[a-z]+)?="([a-z_0-9]+)"', text))
     # t('ключ') и tr('ключ', запасной) — оба; 'err_' + код — префикс, не ключ
     used |= {k for k in re.findall(r"\btr?\('([a-z_0-9]+)'", text) if not k.endswith('_')}
@@ -73,7 +73,7 @@ def test_language_switch_event_exists():
     assert "addEventListener('langchange'" in (STATIC / "index.html").read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("name", ["index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "feedback.js"])
+@pytest.mark.parametrize("name", ["index.html", "design.html", "design.js", "profiles.js", "tools.html", "tools.js", "house.js", "feedback.js"])
 def test_styles_live_in_css(name):
     # Оформление — в styles.css; во встроенных стилях допустим только display:none:
     # это состояние, которое переключает скрипт, а не оформление

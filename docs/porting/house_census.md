@@ -53,7 +53,8 @@
 | `HeaterDuty`, `solve_heater_duty` | PORT (`birds_sensible_w` → `animals_sensible_w`) |
 | `HeatBalance`, `calculate_heat_balance` | ADAPT (тепло свиней, имена полей) + необязательные `animals_sensible_w` (явное тепло поголовья, посчитанное снаружи — свиноматки, другая методика, ks) и `co2_limit_ppm` / `co2_outdoor_ppm` для горелок; по умолчанию поведение исходника |
 | `bird_sensible_heat_w` | ADAPT → `animal_sensible_heat_w` |
-| `HeaterConfig`, `CalibrationTest`, `ThermalConfig`, `THERMAL_CONFIG_PATH`, хранилище по корпусам (`_config_*`, `load_*`, `save_*`, `rename_house`, `HouseIdTaken`), `usable_ua`, `calibration_problem`, `calculate_ua_coefficient`, `MIN_CALIBRATION_MINUTES` | **SKIP** — калибровка UA по тесту остывания и её хранение. PigMaxApp считает UA по конструкции (`construction.py`) или берёт введённый. Пробел: калибровка по факту — в этапе интерфейса |
+| `CalibrationTest`, `calibration_problem`, `MIN_CALIBRATION_MINUTES` | **PORT** (этап 8.3) — калибровка UA по кривой остывания, см. «Дополнение этапа 8.3» |
+| `HeaterConfig`, `ThermalConfig`, `THERMAL_CONFIG_PATH`, хранилище по корпусам (`_config_*`, `load_*`, `save_*`, `rename_house`, `HouseIdTaken`), `usable_ua`, `calculate_ua_coefficient` | **ADAPT** (этап 9) — корпуса фермы, см. «Дополнение этапа 9». `calculate_ua_coefficient` (UA по двум точкам) — SKIP: заменён подгонкой кривой (`cooling_fit`) |
 
 ## construction.py — PORT целиком
 
@@ -197,3 +198,21 @@
   возрасту нет. Тот же предмет — «не дуть на молодняк» — у PigMaxApp закрыт пределом
   скорости РД-АПК по фазе (табл. 18: отъёмыши 0.6, откорм 1.0 м/с;
   `air_speed_above_rd_apk`).
+
+## Дополнение этапа 9 — корпуса фермы (2026-10-26)
+
+- `house_id.py` — PORT 1:1 (`HOUSE_ID_PATTERN`: буквы, в т.ч. кириллица, цифры, пробел,
+  точка, дефис, подчёркивание; без разметки). Проверяется и в маршрутах, и при загрузке
+  файла (восстановление из копии).
+- Хранилище по корпусам (`load_thermal_store` / `save_thermal_config`) → ADAPT: корпуса —
+  `PigSettings.houses`, у каждого размеры, отопитель, UA и калибровка. Файл до этапа 9
+  (один корпус полями верхнего уровня) читается как корпус `"1"`.
+- `usable_ua` / `calibration_other_house` → не нужен: калибровка лежит в записи своего
+  корпуса, применить её к чужому нельзя по устройству.
+- `rename_house` / `HouseIdTaken` → `POST /houses/{id}/rename`, занятое имя — 409
+  `house_exists`; порядок корпусов сохраняется (первый — корпус по умолчанию).
+- Отличие от MINMAXapp: список корпусов хранит сервер, браузер помнит только открытый
+  корпус (`house.js`). У MINMAXapp список жил в браузере и требовал отдельного переноса
+  калибровки при переименовании.
+- Новый корпус копирует размеры и отопитель открытого, но не UA и калибровку: это
+  измерения другого корпуса.
