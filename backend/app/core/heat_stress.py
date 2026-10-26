@@ -18,6 +18,20 @@ refs/norms_cooling/huynh_2005_pubmed_abstract.txt; полный текст не 
 границу диапазона при любой RH — раньше в безопасную сторону (INFERRED). Порог
 корма и теплопродукции одинаков для всех RH (CONFIRMED аннотацией).
 
+Подсосные свиноматки — Quiniou & Noblet 1999 (J Anim Sci 77:2124, PMID 10461991,
+аннотация в refs/norms_cooling/quiniou_noblet_1999_pubmed_abstract.txt): 63
+многоопоросные Large White, постоянно 18 / 22 / 25 / 27 / 29 °C всю лактацию,
+корм вволю с 7-го по 19-й день.
+
+  потребление корма  VFI = −49052 + 1213·T − 31.5·T² + 330·BW − 0.61·BW², г/сут
+                     (7–19-й день; RSD 1018). Максимум по T — 1213/63 = 19.25 °C;
+                     потеря против максимума = 31.5·(T − 19.25)² — вес сокращается
+  дыхание            «испарительная критическая температура ниже 22 °C»: к 22 °C
+                     реакция уже идёт — порог берём 22 как верхнюю оценку (INFERRED)
+  рост поросят       почти постоянен 18–25 °C, ниже выше 25 °C (CONFIRMED)
+
+Влажность в аннотации не названа — от RH модель не зависит. Растущие — Huynh.
+
 Температура в опыте — воздуха в камере без обдува. Мы подставляем эффективную
 температуру, если известна скорость воздуха: обдув свиньи «чувствуют» как
 снижение температуры (McFarlane) — это перенос, а не результат Huynh.
@@ -43,6 +57,13 @@ FEED_LOSS_G_PER_C = ((50.0, 81.0), (65.0, 99.0), (80.0, 106.0))
 STUDY_WEIGHT_KG = (58.0, 74.7)
 # Верх температур опыта: дальше наклон потери корма — линейная экстраполяция
 STUDY_MAX_T_C = 32.0
+
+
+# Подсосные (Quiniou & Noblet 1999): пороги, °C, и коэффициенты уравнения корма
+SOW_THRESHOLDS_C = {"respiration": 22.0, "litter_growth": 25.0}
+SOW_VFI_T1, SOW_VFI_T2 = 1213.0, 31.5          # г/сут на °C и на °C²
+SOW_VFI_PEAK_C = SOW_VFI_T1 / (2 * SOW_VFI_T2)  # 19.25 °C — максимум уравнения
+SOW_STUDY_T_C = (18.0, 29.0)
 
 
 def _note(code: str, **params) -> dict:
@@ -92,5 +113,34 @@ def heat_stress(t_c: float, rh_pct: float, weight_kg: float, temperature_basis: 
         warnings.append(_note("heat_stress_feed_intake", t_c=round(t_c, 1),
                               threshold_c=THRESHOLDS_C["feed_intake"], feed_loss_g_day=loss))
 
-    return {"t_c": round(t_c, 1), "temperature_basis": temperature_basis, "rh_pct": round(rh_pct),
-            "thresholds_c": dict(THRESHOLDS_C), "exceeded": exceeded, "feed_loss_g_day": loss}
+    return {"model": "huynh_2005", "t_c": round(t_c, 1), "temperature_basis": temperature_basis,
+            "rh_pct": round(rh_pct), "thresholds_c": dict(THRESHOLDS_C), "exceeded": exceeded,
+            "feed_loss_g_day": loss}
+
+
+def lactating_sow_heat_stress(t_c: float, temperature_basis: str, assumptions: list, warnings: list,
+                              rh_pct: Optional[float] = None) -> dict:
+    """
+    Подсосная свиноматка: пройденные пороги и потеря корма против максимума
+    уравнения Quiniou & Noblet. Ниже 19.25 °C потерь нет — уравнение там растёт
+    к своему максимуму, а холод — предмет отопления, не теплового стресса.
+    """
+    # Дыхание — «≥»: аннотация говорит, что критическая температура НИЖЕ 22 °C,
+    # то есть при самих 22 реакция уже идёт; рост поросят — «выше 25» строго
+    exceeded = [name for name, thr in SOW_THRESHOLDS_C.items()
+                if (t_c >= thr if name == "respiration" else t_c > thr)]
+    over = t_c - SOW_VFI_PEAK_C
+    loss = round(SOW_VFI_T2 * over * over) if over > 0 else 0
+
+    lo, hi = SOW_STUDY_T_C
+    if t_c > hi:
+        assumptions.append(_note("heat_stress_beyond_study_range", t_c=round(t_c, 1), study_max_c=hi))
+    if t_c > SOW_THRESHOLDS_C["litter_growth"]:
+        warnings.append(_note("heat_stress_sow_litter", t_c=round(t_c, 1),
+                              threshold_c=SOW_THRESHOLDS_C["litter_growth"], feed_loss_g_day=loss))
+
+    out = {"model": "quiniou_noblet_1999", "t_c": round(t_c, 1), "temperature_basis": temperature_basis,
+           "thresholds_c": dict(SOW_THRESHOLDS_C), "exceeded": exceeded, "feed_loss_g_day": loss}
+    if rh_pct is not None:
+        out["rh_pct"] = round(rh_pct)
+    return out

@@ -21,7 +21,7 @@ from .house_checks import Airtightness, airtightness_q4, coldest_surface, conden
 from .max_ventilation import DEFAULT_RISE_C, max_ventilation
 from .min_ventilation import (DEFAULT_CO2_LIMIT_PPM, DEFAULT_CO2_OUTDOOR_PPM, DEFAULT_RH_MAX_PCT,
                               min_ventilation)
-from .heat_stress import heat_stress as heat_stress_check
+from .heat_stress import heat_stress as heat_stress_check, lactating_sow_heat_stress
 from .pig_effective_temp import effective_temperature
 from .pig_heat import DEFAULT_FEED_LEVEL
 from .psychro import pressure_at_altitude_pa
@@ -226,7 +226,7 @@ def requirement(inp: RequirementInput) -> Requirement:
         warnings += e.warnings
 
     # ── Тепловой стресс (Huynh 2005) ──────────────────────────────────────────
-    # Только растущие: опыт ставили на свинках ~60 кг. RH в помещении не вводится —
+    # Растущие — Huynh: опыт ставили на свинках ~60 кг. RH в помещении не вводится —
     # берём предел RH профиля: оценка сверху, порог корма от неё не зависит
     stress = None
     if inp.group == "growing":
@@ -235,6 +235,12 @@ def requirement(inp: RequirementInput) -> Requirement:
         stress = heat_stress_check(t_felt, rh_max, weight, "effective" if eff is not None else "air",
                                    assumptions, warnings)
         sources.append("huynh_2005")
+    elif inp.group == "lactating_sow":
+        # Подсосные — Quiniou & Noblet 1999; от RH модель не зависит, поэтому без
+        # заметки о пределе RH. Супоросных и холостых опыт не касался — без оценки
+        t_felt = eff["t_effective_c"] if eff is not None else t_in
+        stress = lactating_sow_heat_stress(t_felt, "effective" if eff is not None else "air", assumptions, warnings)
+        sources.append("quiniou_noblet_1999")
 
     return Requirement(
         weight_kg=round(weight, 2), t_inside_c=round(t_in, 1), setpoints=setpoints,

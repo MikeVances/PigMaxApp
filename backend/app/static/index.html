@@ -165,6 +165,22 @@
         </div>
       </div>
 
+      <!-- ── Heat stress (Huynh 2005) ───────────────────────────────────────── -->
+      <div class="card mb">
+        <h2 data-i18n="section_heat_stress">Heat stress</h2>
+        <div class="cols cols-150">
+          <label><span class="muted small" data-i18n="hs_t_inside">Inside temperature, °C (empty — outside +3, not below setpoint)</span>
+            <input class="field" id="hsTInside" type="number" step="0.5" /></label>
+          <label><span class="muted small" data-i18n="tl_air_speed">Air speed at the pigs, m/s</span>
+            <input class="field" id="hsSpeed" type="number" step="0.1" value="0" /></label>
+          <label><span class="muted small" data-i18n="hs_rh_inside">Inside RH, %</span>
+            <input class="field" id="hsRh" type="number" step="5" value="65" /></label>
+        </div>
+        <table class="table-plain mt-12"><tbody id="hsRows"></tbody></table>
+        <ul class="warn-list" id="hsWarnings"></ul>
+        <ul class="note-list" id="hsNotes"></ul>
+      </div>
+
       <!-- Gas limits -->
       <div class="card mb">
         <div class="muted small mb-8" data-i18n="gas_limits_title">Gas concentration limits (PIC 2019)</div>
@@ -392,6 +408,7 @@
       document.getElementById('resDayWeaning').textContent  = d.day_post_weaning ?? '—';
       lastVent = d;
       showMinimum(d);
+      heatStress();
       document.getElementById('resTargetTemp').textContent  = d.target_temp_c;
       document.getElementById('coolingAlert').style.display = d.cooling_needed ? '' : 'none';
       document.getElementById('results').style.display      = '';
@@ -464,6 +481,54 @@
       });
       ul.style.display = (d.warnings || []).length ? '' : 'none';
     }
+
+    // ── Тепловой стресс — тот же маршрут, что инструмент эффективной температуры ──
+    // Внутри не задано — наружная с подъёмом 3 °C (DEFAULT_RISE_C ядра), но не ниже
+    // уставки: зимой помещение держат отоплением, а не наружным воздухом
+    // Свой перевод с запасным текстом: tr главной объявлен внутри showMinimum
+    const trS = (k, fb) => (window.t && window.t(k) !== k) ? window.t(k) : fb;
+    let lastStress = null;
+    async function heatStress() {
+      if (!lastVent) return;
+      const tOut = parseFloat(document.getElementById('tOutside').value);
+      const given = parseFloat(document.getElementById('hsTInside').value);
+      const tIn = isNaN(given) ? Math.max(lastVent.setpoint_c, tOut + 3) : given;
+      const r = await fetch('./calc/effective-temperature', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ t_air_c: tIn, air_speed_ms: parseFloat(document.getElementById('hsSpeed').value) || 0,
+                               rh_pct: parseFloat(document.getElementById('hsRh').value) || 65,
+                               weight_kg: parseFloat(document.getElementById('avgWeight').value) }),
+      });
+      if (!r.ok) return;
+      lastStress = await r.json();
+      renderStress();
+    }
+    function renderStress() {
+      const j = lastStress;
+      if (!j) return;
+      const hs = j.heat_stress;
+      const rows = [
+        ['tl_t_eff', 'Effective temperature, °C', j.t_effective_c],
+        ['tl_stress_exceeded', 'Heat-stress reactions started',
+         hs.exceeded.length ? hs.exceeded.map(x => trS('stress_' + x, x)).join(', ') : trS('tl_none', 'none')],
+        ['tl_feed_loss', 'Feed intake loss, g/day', hs.feed_loss_g_day],
+      ];
+      const tbody = document.getElementById('hsRows');
+      tbody.innerHTML = '';
+      rows.forEach(([key, fb, v]) => {
+        const row = document.createElement('tr');
+        const a = document.createElement('td'); a.className = 'muted'; a.textContent = trS(key, fb);
+        const b = document.createElement('td'); b.className = 'num';
+        const st = document.createElement('strong'); st.textContent = v; b.appendChild(st);
+        row.append(a, b); tbody.appendChild(row);
+      });
+      [['hsWarnings', j.warnings, 'warn_'], ['hsNotes', j.assumptions, 'note_']].forEach(([id, list, prefix]) => {
+        const ul = document.getElementById(id); ul.innerHTML = '';
+        (list || []).forEach(n => { const li = document.createElement('li'); li.textContent = trS(prefix + n.code, n.code); ul.appendChild(li); });
+      });
+    }
+    ['hsTInside', 'hsSpeed', 'hsRh'].forEach(id => document.getElementById(id).addEventListener('change', heatStress));
+    document.addEventListener('langchange', renderStress);
 
     // Профили генетики — из справочника сервера
     fetch('./genetics').then(r => r.json()).then(list => {

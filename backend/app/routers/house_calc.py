@@ -21,7 +21,7 @@ from ..core import genetics as genetics_mod
 from ..core import tunnel_design as T
 from ..core.errors import CalcError
 from ..core.max_ventilation import DEFAULT_RISE_C, MaxNorm, max_ventilation
-from ..core.heat_stress import heat_stress
+from ..core.heat_stress import heat_stress, lactating_sow_heat_stress
 from ..core.pig_effective_temp import Floor, effective_temperature
 from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, MethodNotApplicable
 from ..core.psychro import pressure_at_altitude_pa
@@ -219,6 +219,8 @@ class EffectiveTempRequest(BaseModel):
     # Оба заданы — заодно тепловой стресс растущих (Huynh 2005) при эффективной температуре
     rh_pct: Optional[float] = Field(None, ge=1, le=100)
     weight_kg: Optional[float] = Field(None, gt=0, le=400)
+    # Растущие (Huynh: нужны RH и вес) или подсосные (Quiniou & Noblet: только температура)
+    group: Literal["growing", "lactating_sow"] = "growing"
 
 
 @router.post("/calc/effective-temperature")
@@ -226,11 +228,14 @@ def calc_effective_temperature(req: EffectiveTempRequest):
     """Эффективная температура у свиней: воздух, скорость (McFarlane), пол (Close)."""
     r = effective_temperature(req.t_air_c, req.air_speed_ms, req.floor, req.setpoint_c)
     out = dataclasses.asdict(r)
-    if req.rh_pct is not None and req.weight_kg is not None:
-        notes: list[dict] = []
+    notes: list[dict] = []
+    if req.group == "lactating_sow":
+        out["heat_stress"] = lactating_sow_heat_stress(r.t_effective_c, "effective", notes, out["warnings"], req.rh_pct)
+        out["sources"] = out["sources"] + ["quiniou_noblet_1999"]
+    elif req.rh_pct is not None and req.weight_kg is not None:
         out["heat_stress"] = heat_stress(r.t_effective_c, req.rh_pct, req.weight_kg, "effective", notes, out["warnings"])
-        out["assumptions"] = out["assumptions"] + notes
         out["sources"] = out["sources"] + ["huynh_2005"]
+    out["assumptions"] = out["assumptions"] + notes
     return out
 
 

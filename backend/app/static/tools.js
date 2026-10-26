@@ -247,7 +247,8 @@
   // ── Эффективная температура и тепловой стресс ──────────────────────────────
   $('fRun').addEventListener('click', async () => {
     const body = { t_air_c: num('fTAir'), air_speed_ms: opt('fSpeed') || 0, floor: $('fFloor').value,
-                   setpoint_c: opt('fSetpoint'), rh_pct: opt('fRh'), weight_kg: opt('fWeight') };
+                   setpoint_c: opt('fSetpoint'), rh_pct: opt('fRh'), weight_kg: opt('fWeight'),
+                   group: $('fGroup').value };
     const j = await post('f', './calc/effective-temperature', body);
     if (!j) return;
     show('f', j, j => {

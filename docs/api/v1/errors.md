@@ -46,6 +46,7 @@
 | <a id="tunnel_length_loss_not_included"></a>`tunnel_length_loss_not_included` | давление туннеля без потерь по длине корпуса — источника коэффициента нет, замер их заменяет |
 | <a id="tunnel_pressure_high"></a>`tunnel_pressure_high` | рабочее давление выше 50 Па — осевые вентиляторы теряют расход, перепроверьте каталог и панели |
 | <a id="heat_stress_feed_intake"></a>`heat_stress_feed_intake` | температура (эффективная или воздуха — `heat_stress.temperature_basis`) выше порога потребления корма Huynh 2005 (25.5 °C): свиньи недоедают `feed_loss_g_day` г/сут; `t_c`, `threshold_c`, `feed_loss_g_day` |
+| <a id="heat_stress_sow_litter"></a>`heat_stress_sow_litter` | подсосная свиноматка: температура выше 25 °C — по Quiniou & Noblet 1999 падает рост поросят; `t_c`, `threshold_c`, `feed_loss_g_day` (недоедание свиноматки против 19.25 °C) |
 | <a id="condensation_risk"></a>`condensation_risk` | самая холодная внутренняя поверхность ограждения холоднее точки росы при пределе RH: капель, мокрые стены; `element`, `surface_c`, `dew_point_c` (у проекта — `days`) |
 | <a id="leakage_exceeds_min_vent"></a>`leakage_exceeds_min_vent` | утечка при 4 Па больше минимума — отопление греет воздух щелей, уплотнение корпуса экономит тепло |
 | <a id="fan_curve_extrapolated"></a>`fan_curve_extrapolated` | рабочая точка за последней точкой каталога вентилятора |

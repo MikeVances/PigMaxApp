@@ -276,6 +276,21 @@ _SOURCES: tuple[Source, ...] = (
         limits="Происхождение чисел не проверено — источник указывает сам пользователь.",
     ),
     Source(
+        id="quiniou_noblet_1999", kind="research",
+        citation="Quiniou N., Noblet J. 1999, J Anim Sci 77:2124–2134 (PMID 10461991)",
+        title="Influence of high ambient temperatures on performance of multiparous lactating sows",
+        publisher="Journal of Animal Science", year=1999,
+        locator="аннотация (refs/norms_cooling/quiniou_noblet_1999_pubmed_abstract.txt)",
+        applies_to="тепловой стресс подсосных свиноматок: пороги и потеря корма",
+        statement=("63 многоопоросные Large White, постоянно 18–29 °C всю лактацию. Потребление корма "
+                   "(7–19-й день) VFI = −49052 + 1213·T − 31.5·T² + 330·BW − 0.61·BW² г/сут; испарительная "
+                   "критическая температура ниже 22 °C; выше 25 °C падает рост поросят."),
+        how_used=("Потеря корма — против максимума уравнения (19.25 °C): 31.5·(T − 19.25)² г/сут, вес "
+                  "сокращается. Пороги: дыхание с 22 °C (верхняя оценка), рост поросят выше 25 °C."),
+        limits=("Прочитана только аннотация. Опыт 18–29 °C, корм вволю, одна порода; RH не названа — "
+                "модель от неё не зависит. Супоросные и холостые — без оценки."),
+    ),
+    Source(
         id="huynh_2005", kind="research",
         citation="Huynh T.T.T. et al. 2005, J Anim Sci 83:1385–1396 (PMID 15890816)",
         title="Effects of increasing temperatures on physiological changes in pigs at different relative humidities",

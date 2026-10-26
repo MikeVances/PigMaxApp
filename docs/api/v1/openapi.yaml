@@ -631,23 +631,20 @@ components:
 
     HeatStress:
       type: object
-      description: Тепловой стресс растущих свиней по Huynh 2005 (свинки ~60 кг)
-      required: [t_c, temperature_basis, rh_pct, thresholds_c, exceeded, feed_loss_g_day]
+      description: "Тепловой стресс: растущие — Huynh 2005 (свинки ~60 кг), подсосные — Quiniou & Noblet 1999"
+      required: [model, t_c, temperature_basis, thresholds_c, exceeded, feed_loss_g_day]
       properties:
+        model: { type: string, enum: [huynh_2005, quiniou_noblet_1999] }
         t_c: { type: number, description: "Температура, по которой оценено" }
         temperature_basis: { type: string, enum: [effective, air], description: "effective — с обдувом и полом; air — воздух без обдува" }
-        rh_pct: { type: number }
+        rh_pct: { type: number, description: "Есть у растущих (Huynh); модель подсосных от RH не зависит" }
         thresholds_c:
           type: object
-          required: [respiration, heat_production, rectal_temperature, feed_intake]
-          properties:
-            respiration: { type: number }
-            heat_production: { type: number }
-            rectal_temperature: { type: number }
-            feed_intake: { type: number }
+          description: "Пороги модели, °C: растущие — respiration, heat_production, rectal_temperature, feed_intake; подсосные — respiration, litter_growth"
+          additionalProperties: { type: number }
         exceeded:
           type: array
-          items: { type: string, enum: [respiration, heat_production, rectal_temperature, feed_intake] }
+          items: { type: string, enum: [respiration, heat_production, rectal_temperature, feed_intake, litter_growth] }
         feed_loss_g_day: { type: number, description: "Недоедание корма, г/(гол·сут); 0 — ниже порога корма" }
 
     RequirementResult:
