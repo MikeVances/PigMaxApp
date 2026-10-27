@@ -141,16 +141,45 @@ _SOURCES: tuple[Source, ...] = (
         url="https://www.pic.com/wp-content/uploads/sites/3/2021/12/PIC-Wean-To-Finish-Manual.pdf",
     ),
     Source(
+        id="mwps_pih60", kind="extension",
+        citation="MWPS hot-weather ventilation rates, Pork Industry Handbook PIH-60, табл. 1",
+        title="Mechanical Ventilation of Swine Buildings (PIH-60)",
+        publisher="Pork Industry Handbook (Purdue Cooperative Extension); нормы — Midwest Plan Service",
+        year=None,
+        locator="табл. 1 «Recommended fan capacities (at 1/8 in. static pressure) per pig», колонка Hot",
+        applies_to="максимальная (летняя) вентиляция на голову для доращивания и откорма — норма mwps",
+        statement=(
+            "Hot weather, cfm/гол: 12–30 lb — 25, 30–75 lb — 35, 75–150 lb — 75, 150–220 lb — 120 "
+            "(супоросная 150, свиноматка с поросятами 500). Нормы можно снизить при дополнительном "
+            "охлаждении и повысить, если скорость воздуха у свиней летом мала. Та же колонка — в MSU "
+            "E1760 (1992, табл. 1) и в SwineWeb 2022 со ссылкой на MWPS-32."
+        ),
+        how_used=(
+            "Норма по умолчанию для доращивания и откорма: класс, в верх которого попадает масса "
+            "(1 lb = 0.45359 кг), ступенью; итог — большее из теплового баланса и нормы. Свиноматкам "
+            "и хрякам — PIC (pic_2021_sow)."
+        ),
+        limits=(
+            "Сам справочник MWPS-32 платный и не открывался — норма по перепечатке. Выше 220 lb "
+            "(99.8 кг) таблица кончается, берётся 120 cfm (перепечатки ведут класс до 260–280 lb). "
+            "Нормы американские, для жаркого климата: DIN 18910 летом ниже (62–126 м³/ч на 30–100 кг), "
+            "Klimaatplatform — 80 м³/ч на откорм."
+        ),
+        url="https://web.archive.org/web/2015/http://www.genome.iastate.edu/edu/PIH/60.html",
+    ),
+    Source(
         id="pic_2021_sow", kind="manufacturer",
-        citation="PIC Gilt & Sow Management Guidelines 2021, табл. 3.1 и 5.2",
+        citation="PIC Gilt & Sow Management Guidelines 2021, табл. 2.4, 3.1 и 5.2",
         title="Gilt & Sow Management Guidelines",
         publisher="PIC", year=2021,
-        locator="табл. 3.1 (осеменение и супоросность), табл. 5.2 (опорос)",
-        applies_to="минимальная вентиляция свиноматок и хряков на голову",
+        locator="табл. 2.4 (ремонтные свинки по фазам), табл. 3.1 (осеменение и супоросность), табл. 5.2 (опорос)",
+        applies_to="минимальная вентиляция свиноматок и хряков на голову; максимальная — норма pic",
         statement=(
             "Осеменение и супоросность: 18–20 °C, минимальная вентиляция зимой 12 cfm/гол, "
             "максимальная 150 cfm/гол, RH < 65 %. Опорос: 21–23 °C при опоросе со снижением до "
-            "19 °C к 7–10 дню, вентиляция зимой 20 cfm/гол, летом 650 cfm/гол, RH < 65 %."
+            "19 °C к 7–10 дню, вентиляция зимой 20 cfm/гол, летом 650 cfm/гол, RH < 65 %. "
+            "Табл. 2.4, без туннеля, максимум: Nursery (отъём – 70 дней) 40 cfm/гол, Grower "
+            "(70 дней – стимуляция хряком) 120, GDU (до осеменения) 150."
         ),
         how_used=(
             "Норма `pic` для свиноматок: 12 cfm = 20.4 м³/ч (холостые, супоросные), 20 cfm = "

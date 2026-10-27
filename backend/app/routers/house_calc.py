@@ -20,7 +20,7 @@ from ..core import evap_cooling_calc as E
 from ..core import genetics as genetics_mod
 from ..core import tunnel_design as T
 from ..core.errors import CalcError
-from ..core.max_ventilation import DEFAULT_RISE_C, MaxNorm, max_ventilation
+from ..core.max_ventilation import DEFAULT_MAX_NORM, DEFAULT_RISE_C, MaxNorm, max_ventilation
 from ..core.heat_stress import heat_stress, lactating_sow_heat_stress
 from ..core.pig_effective_temp import Floor, effective_temperature
 from ..core.pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, MethodNotApplicable
@@ -168,7 +168,7 @@ class MaxVentRequest(BaseModel):
     t_outside_c: float = Field(..., ge=-10, le=50)
     rise_c: float = Field(DEFAULT_RISE_C, gt=0, le=15)
     ua_w_per_k: float = Field(0.0, ge=0)
-    norm: MaxNorm = "pic"
+    norm: MaxNorm = DEFAULT_MAX_NORM
     genetics: Optional[str] = None
     phase: Optional[genetics_mod.Phase] = None
     altitude_m: float = Field(0.0, ge=-100, le=4000)

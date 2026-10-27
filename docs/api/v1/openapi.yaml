@@ -500,7 +500,7 @@ components:
         co2_limit_ppm: { type: number, minimum: 1000, maximum: 5000, default: 3000, description: "РД-АПК — 2000" }
         co2_outdoor_ppm: { type: number, minimum: 300, maximum: 600, default: 420 }
         norm: { type: string, enum: [pic, rd_apk_2012, genetics, none], default: pic, description: "Норма минимальной вентиляции на голову" }
-        max_norm: { type: string, enum: [pic, genetics, none], default: pic, description: "Норма максимальной вентиляции на голову" }
+        max_norm: { type: string, enum: [mwps, pic, genetics, none], default: mwps, description: "Норма максимальной вентиляции на голову: mwps — MWPS по классам массы (PIH-60, по умолчанию), pic — PIC Gilt & Sow 2021 табл. 2.4 (40 / 120 cfm); свиноматкам обе — PIC" }
         rise_c: { type: number, exclusiveMinimum: 0, maximum: 15, default: 3, description: "Подъём температуры над наружной для расчёта по теплу" }
 
     Heaters:

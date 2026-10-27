@@ -54,7 +54,7 @@ class RequirementInput:
     co2_limit_ppm: float = DEFAULT_CO2_LIMIT_PPM
     co2_outdoor_ppm: float = DEFAULT_CO2_OUTDOOR_PPM
     norm: str = "pic"
-    max_norm: str = "pic"
+    max_norm: str = "mwps"
     rise_c: float = DEFAULT_RISE_C
     altitude_m: float = 0.0
     ua_w_per_k: Optional[float] = None

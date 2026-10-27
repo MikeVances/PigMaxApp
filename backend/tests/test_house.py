@@ -68,13 +68,32 @@ def test_walls_take_part_of_the_heat():
     assert heat_removal_m3h(1000, 1000, 25, 3) == 0.0     # ограждение уносит всё — вентиляция не нужна
 
 
-@pytest.mark.parametrize("group,weight,norm", [("growing", 100, 254.9), ("growing", 15, 68.0),
+@pytest.mark.parametrize("group,weight,norm", [("growing", 100, 203.9), ("growing", 15, 68.0),
                                                ("lactating_sow", 220, 1104.4), ("boar", 280, 254.9)])
 def test_pic_max_norms(group, weight, norm):
-    # 150 cfm = 254.9; доращивание 40 cfm = 68.0; опорос летом 650 cfm = 1104.4 м³/ч
-    r = max_ventilation(group, weight, 100, 25)
+    # PIC Gilt & Sow 2021 табл. 2.4: доращивание 40 cfm = 68.0, Grower 120 cfm = 203.9
+    # (до 2026-10-27 откорм брал 150 — это GDU, свинки перед осеменением);
+    # опорос летом 650 cfm = 1104.4, хряк 150 cfm = 254.9 м³/ч
+    r = max_ventilation(group, weight, 100, 25, norm="pic")
     assert r.norm_m3h_per_head == pytest.approx(norm, abs=0.05)
     assert r.basis == "norm"
+
+
+@pytest.mark.parametrize("weight,cfm", [(10, 25), (29, 35), (34.0, 35), (34.1, 75), (60, 75),
+                                        (90, 120), (130, 120)])
+def test_mwps_max_norm_by_weight_class(weight, cfm):
+    # PIH-60 табл. 1 «Hot»: 12–30 / 30–75 / 75–150 / 150–220 lb → 25 / 35 / 75 / 120 cfm.
+    # Граница 75 lb = 34.02 кг: 34.0 — ещё класс 30–75, 34.1 — уже 75–150.
+    # Норма по умолчанию — MWPS (решение владельца 2026-10-27)
+    r = max_ventilation("growing", weight, 100, 25)
+    assert r.norm_m3h_per_head == pytest.approx(cfm * 1.699011, abs=0.05)
+    assert "mwps_pih60" in r.sources
+    above = {a["code"] for a in r.assumptions} >= {"mwps_above_table"}
+    assert above == (weight > 99.8)
+
+
+def test_mwps_keeps_pic_for_sows():
+    assert max_ventilation("lactating_sow", 220, 10, 25).norm_m3h_per_head == pytest.approx(1104.4, abs=0.05)
 
 
 def test_pic_norm_implies_about_one_degree_rise():
@@ -168,7 +187,8 @@ def test_evap_cooling_endpoint(client):
 def test_max_ventilation_endpoint(client):
     j = client.post("/calc/max-ventilation", json={"group": "growing", "weight_kg": 100,
                                                    "num_animals": 1000, "t_outside_c": 30}).json()
-    assert j["per_head_m3h"] == pytest.approx(254.9, abs=0.05) and j["basis"] == "norm"
+    # По умолчанию MWPS: 100 кг — верхний класс 120 cfm = 203.9 м³/ч, масса чуть выше таблицы
+    assert j["per_head_m3h"] == pytest.approx(203.9, abs=0.05) and j["basis"] == "norm"
     assert {"code": "design_temperature_rise", "params": {"rise_c": 3.0}} in j["assumptions"]
 
 

@@ -458,7 +458,7 @@ class ModelIn(_Strict):
     co2_limit_ppm: float = Field(DEFAULT_CO2_LIMIT_PPM, ge=1000, le=5000)
     co2_outdoor_ppm: float = Field(DEFAULT_CO2_OUTDOOR_PPM, ge=300, le=600)
     norm: Literal["pic", "rd_apk_2012", "genetics", "none"] = "pic"
-    max_norm: Literal["pic", "genetics", "none"] = "pic"
+    max_norm: Literal["mwps", "pic", "genetics", "none"] = "mwps"
     rise_c: float = Field(DEFAULT_RISE_C, gt=0, le=15)
 
 

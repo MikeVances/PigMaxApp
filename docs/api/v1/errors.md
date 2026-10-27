@@ -71,6 +71,7 @@
 | <a id="outside_rh_default"></a>`outside_rh_default` | наружная RH не задана — 80 % |
 | <a id="rh_max_default"></a>`rh_max_default` | предел RH не задан и в профиле его нет — 65 % (PIC) |
 | <a id="design_temperature_rise"></a>`design_temperature_rise` | летний подъём над наружной 3 °C (РД-АПК допускает до +5) |
+| <a id="mwps_above_table"></a>`mwps_above_table` | масса выше последнего класса MWPS (150–220 lb ≈ 99.8 кг) — норма 120 cfm верхнего класса (перепечатки ведут его до 260–280 lb, PIC W2F — «120–150» на откорм); `weight_kg`, `table_max_kg` |
 | <a id="effective_temperature_empirical"></a>`effective_temperature_empirical` | эффективная температура свиней — эмпирика (McFarlane, Close), а не формула |
 | <a id="wet_floor_midpoint"></a>`wet_floor_midpoint` | мокрый пол −8.5 °C — середина 7–10 (Mount 1975) |
 | <a id="weight_from_growth_curve"></a>`weight_from_growth_curve` | вес взят по кривой роста профиля на заданный день |

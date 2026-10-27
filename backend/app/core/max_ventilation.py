@@ -11,10 +11,16 @@ S — явное тепло на уровне здания при t_in = t_out +
 над наружной, но не выше 26–28 °C — задаётся параметром.
 
 По норме на голову (м³/ч):
-  pic       — Gilt & Sow 2021 табл. 2.4 (доращивание 40 cfm, откорм и свинки 120–150 → 150),
-              табл. 3.1 (осеменение и супоросность 150), табл. 5.2 (опорос летом 650);
-              W2F 2019, разд. 4 «Maximum Ventilation Reference»: «120–150 CFM per finishing
-              pig» без туннеля — верхний край;
+  mwps      — по умолчанию (решение владельца 2026-10-27). Доращивание и откорм — MWPS
+              «Hot weather» по классам массы в перепечатке Pork Industry Handbook PIH-60,
+              табл. 1: 12–30 / 30–75 / 75–150 / 150–220 lb → 25 / 35 / 75 / 120 cfm/гол;
+              свиноматки и хряки — PIC, как у нормы pic;
+  pic       — Gilt & Sow 2021 табл. 2.4 для доращивания и откорма: до 70 дней (≈ 25 кг)
+              40 cfm, Grower 120 cfm; табл. 3.1 (осеменение и супоросность 150), табл. 5.2
+              (опорос летом 650). До 2026-10-27 откорм брал 150 cfm — верхний край «120–150
+              CFM per finishing pig (depending on pig weight)» PIC W2F 2019 одной ступенью
+              от 25 кг: поросёнку 29 кг — как свинье 118 кг. 150 в табл. 2.4 — это GDU,
+              свинки перед осеменением, а не откорм;
   genetics  — максимум из профиля (Klimaatplatform 2021);
   none      — только тепло.
 
@@ -31,15 +37,33 @@ from .min_ventilation import CFM_TO_M3H
 from .pig_heat import DEFAULT_FEED_LEVEL, FeedLevel, FloorFeed, Group, Method, PigHeat, pig_heat
 from .psychro import P_ATM_PA
 
-MaxNorm = Literal["pic", "genetics", "none"]
+MaxNorm = Literal["mwps", "pic", "genetics", "none"]
+DEFAULT_MAX_NORM: MaxNorm = "mwps"
 
 DEFAULT_RISE_C = 3.0
 
 # Граница доращивания для нормы PIC: 70 дней по табл. 2.4 ≈ 25 кг (PIC W2F табл. 4.1:
 # 44-й день после отъёма — 24 кг, отъём в 3–4 недели)
 PIC_NURSERY_MAX_KG = 25.0
-PIC_MAX_CFM = {"nursery": 40.0, "growing": 150.0, "gestating_sow": 150.0, "dry_sow": 150.0,
+PIC_MAX_CFM = {"nursery": 40.0, "growing": 120.0, "gestating_sow": 150.0, "dry_sow": 150.0,
                "boar": 150.0, "lactating_sow": 650.0}
+
+# MWPS «Hot weather», cfm/гол — PIH-60 табл. 1 «Recommended fan capacities (at 1/8 in.
+# static pressure)»: (верх класса, фунты; cfm). Сноска: нормы можно снизить при
+# дополнительном охлаждении и повысить, если скорость воздуха у свиней летом мала
+LB_TO_KG = 0.45359237
+MWPS_HOT_CFM = [(30.0, 25.0), (75.0, 35.0), (150.0, 75.0), (220.0, 120.0)]
+# Выше 220 lb таблица PIH-60 кончается; перепечатки ведут верхний класс дальше
+# (SwineWeb 2022: «150-260 lb» — 120), PIC W2F даёт откорму «120–150»: держим 120
+MWPS_TOP_KG = MWPS_HOT_CFM[-1][0] * LB_TO_KG
+
+
+def mwps_hot_cfm(weight_kg: float) -> float:
+    """Норма MWPS для массы: класс, в верх которого масса попадает (ступенью, как в таблице)."""
+    for top_lb, cfm in MWPS_HOT_CFM:
+        if weight_kg <= top_lb * LB_TO_KG:
+            return cfm
+    return MWPS_HOT_CFM[-1][1]
 
 
 @dataclass(frozen=True)
@@ -79,11 +103,14 @@ def max_norm_m3h(norm: MaxNorm, group: str, weight_kg: float, genetics: Optional
         if sp.max_vent_m3h is None:
             raise ValueError(f"profile {genetics} has no maximum ventilation per head")
         return sp.max_vent_m3h, sp.source_id
+    if norm == "mwps" and group == "growing":
+        return round(mwps_hot_cfm(weight_kg) * CFM_TO_M3H, 1), "mwps_pih60"
+    # pic — и свиноматки с хряками у нормы mwps: у MWPS для них отдельных строк по
+    # нашим группам нет, а PIC их даёт
     key = group
     if group == "growing":
         key = "nursery" if weight_kg <= PIC_NURSERY_MAX_KG else "growing"
-    source = "pic_2021_sow" if group != "growing" or key == "nursery" else "pic_2019_w2f"
-    return round(PIC_MAX_CFM[key] * CFM_TO_M3H, 1), source
+    return round(PIC_MAX_CFM[key] * CFM_TO_M3H, 1), "pic_2021_sow"
 
 
 def max_ventilation(
@@ -94,7 +121,7 @@ def max_ventilation(
     *,
     rise_c: float = DEFAULT_RISE_C,
     ua_w_per_k: float = 0.0,
-    norm: MaxNorm = "pic",
+    norm: MaxNorm = DEFAULT_MAX_NORM,
     genetics: Optional[str] = None,
     phase: Optional[str] = None,
     p_pa: float = P_ATM_PA,
@@ -125,6 +152,9 @@ def max_ventilation(
     q_norm, norm_source = max_norm_m3h(norm, group, weight_kg, genetics, phase)
     if norm_source:
         sources.append(norm_source)
+    if norm == "mwps" and group == "growing" and weight_kg > MWPS_TOP_KG:
+        assumptions.append(_note("mwps_above_table", weight_kg=weight_kg,
+                                 table_max_kg=round(MWPS_TOP_KG, 1)))
 
     basis, q = "heat", q_heat
     if q_norm is not None and q_norm > q_heat:

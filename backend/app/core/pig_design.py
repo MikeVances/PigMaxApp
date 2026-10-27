@@ -80,7 +80,7 @@ class DesignInput:
     co2_limit_ppm: float = DEFAULT_CO2_LIMIT_PPM
     co2_outdoor_ppm: float = DEFAULT_CO2_OUTDOOR_PPM
     norm: str = "pic"
-    max_norm: str = "pic"
+    max_norm: str = "mwps"
     rise_c: float = DEFAULT_RISE_C
     altitude_m: float = 0.0
     heater_type: str = "gas_open"
